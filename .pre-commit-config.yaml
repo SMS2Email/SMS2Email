@@ -1,0 +1,26 @@
+repos:
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.9.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: debug-statements
+      - id: check-builtin-literals
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://gitlab.developers.cam.ac.uk/uis/devops/continuous-delivery/precommit-google-java-format
+    rev: v1.2.0
+    hooks:
+      - id: google-java-format
+        files: "\\.java$"
+        args: ["-i"]
