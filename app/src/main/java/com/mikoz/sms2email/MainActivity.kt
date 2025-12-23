@@ -1,9 +1,12 @@
 package com.mikoz.sms2email
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
@@ -21,18 +24,34 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import android.content.Context
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import com.mikoz.sms2email.ui.theme.SMS2EmailTheme
 
 class MainActivity : ComponentActivity() {
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            Toast.makeText(this, "SMS permission granted", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "SMS permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        checkAndRequestSmsPermission()
+
         setContent {
             SMS2EmailTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -41,6 +60,21 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
+            }
+        }
+    }
+
+    private fun checkAndRequestSmsPermission() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECEIVE_SMS
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                // Permission already granted
+            }
+            else -> {
+                // Request permission
+                requestPermissionLauncher.launch(Manifest.permission.RECEIVE_SMS)
             }
         }
     }
@@ -57,6 +91,11 @@ fun MailPreferencesScreen(context: Context, modifier: Modifier = Modifier) {
     fun savePreference(key: String, value: Int) {
         sharedPreferences.edit().putInt(key, value).apply()
     }
+
+    val isSmsPermissionGranted = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.RECEIVE_SMS
+    ) == PackageManager.PERMISSION_GRANTED
 
     var smtpHost by remember {
         mutableStateOf(sharedPreferences.getString("smtp.host", "smtp.gmail.com") ?: "smtp.gmail.com")
@@ -85,6 +124,13 @@ fun MailPreferencesScreen(context: Context, modifier: Modifier = Modifier) {
     ) {
         Text(
             text = "Mail Preferences",
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        Text(
+            text = if (isSmsPermissionGranted) "✓ SMS Permission: Granted" else "✗ SMS Permission: Not Granted",
+            color = if (isSmsPermissionGranted) Color.Green else Color.Red,
+            fontSize = 14.sp,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
