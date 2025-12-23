@@ -1,11 +1,8 @@
 package com.mikoz.sms2email;
 
-
 import android.content.Context;
 import android.content.SharedPreferences;
-
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.Properties;
 import javax.mail.Authenticator;
@@ -18,7 +15,8 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
 public class MailSender {
-  public void send(Context context, String subject, String content) throws IOException, FileNotFoundException {
+  public void send(Context context, String subject, String content)
+      throws IOException, FileNotFoundException {
     final SharedPreferences pref = context.getSharedPreferences("", Context.MODE_PRIVATE);
     final Properties prop = new Properties();
     prop.put("mail.smtp.host", pref.getString("smtp.host", "smtp.gmail.com"));
