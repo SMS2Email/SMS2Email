@@ -4,7 +4,4 @@ plugins {
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.compose) apply false
 }
-dependencies {
-    // Preferences DataStore (SharedPreferences like APIs)
-    implementation("androidx.datastore:datastore-preferences:1.2.0")
-}
+
