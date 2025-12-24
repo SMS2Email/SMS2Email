@@ -128,15 +128,15 @@ fun MailPreferencesScreen(
         }
 
         Text(
-            text = "SMTP Preferences",
-            style = MaterialTheme.typography.titleLarge,
+            text = if (isSmsPermissionGranted) "✓ SMS Permission: Granted" else "✗ SMS Permission: Not Granted",
+            color = if (isSmsPermissionGranted) Color.Green else Color.Red,
+            style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
         Text(
-            text = if (isSmsPermissionGranted) "✓ SMS Permission: Granted" else "✗ SMS Permission: Not Granted",
-            color = if (isSmsPermissionGranted) Color.Green else Color.Red,
-            style = MaterialTheme.typography.bodyMedium,
+            text = "SMTP Preferences",
+            style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
