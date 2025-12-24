@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
@@ -63,7 +64,7 @@ class MainActivity : ComponentActivity() {
             SMS2EmailTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     MailPreferencesScreen(
-                        context = this,
+                        context = this@MainActivity,
                         onRequestPermission = { requestPermissionLauncher.launch(Manifest.permission.RECEIVE_SMS) },
                         modifier = Modifier.padding(innerPadding)
                     )
@@ -108,6 +109,7 @@ fun MailPreferencesScreen(
             .fillMaxSize()
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
+            .background(Color.Transparent)
     ) {
         Card(
             modifier = Modifier
