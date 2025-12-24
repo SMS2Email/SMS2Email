@@ -110,7 +110,7 @@ fun MailPreferencesScreen(
         )
 
         Text(
-            text = "✉️ SMTP Preferences",
+            text = "SMTP Preferences",
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 16.dp)
         )
