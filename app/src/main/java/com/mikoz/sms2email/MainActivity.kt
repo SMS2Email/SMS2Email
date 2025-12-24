@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -104,13 +105,14 @@ fun MailPreferencesScreen(
     ) {
         Text(
             text = "Mail Preferences",
+            style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
         Text(
             text = if (isSmsPermissionGranted) "✓ SMS Permission: Granted" else "✗ SMS Permission: Not Granted",
             color = if (isSmsPermissionGranted) Color.Green else Color.Red,
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 

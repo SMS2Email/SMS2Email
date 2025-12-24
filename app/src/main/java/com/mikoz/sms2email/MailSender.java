@@ -40,7 +40,7 @@ public class MailSender {
       Message message = new MimeMessage(session);
       message.setFrom(new InternetAddress(config.getFromEmail()));
       message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(config.getToEmail()));
-      message.setSubject(subject);
+      message.setSubject("SMS from " + subject);
       message.setText(content);
       Transport.send(message);
 
@@ -51,8 +51,8 @@ public class MailSender {
 
       NotificationCompat.Builder builder =
           new NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
-              .setContentTitle("Transferred SMS from " + sender)
-              .setContentText(message)
+              .setContentTitle("Transferred SMS from " + subject)
+              .setContentText(content)
               .setSmallIcon(android.R.drawable.ic_dialog_email);
 
       notificationManager.notify(2, builder.build());

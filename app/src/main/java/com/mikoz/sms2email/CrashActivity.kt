@@ -17,12 +17,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mikoz.sms2email.ui.theme.SMS2EmailTheme
 
 class CrashActivity : ComponentActivity() {
@@ -64,14 +64,13 @@ fun CrashScreen(
         Text(
             text = "App Crashed",
             color = Color.Red,
-            fontSize = 24.sp,
+            style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
         Text(
             text = crashMessage,
-            fontSize = 12.sp,
-            fontFamily = FontFamily.Monospace,
+            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp, 4.dp)
@@ -81,8 +80,7 @@ fun CrashScreen(
 
         Text(
             text = stackTrace,
-            fontSize = 10.sp,
-            fontFamily = FontFamily.Monospace,
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp, 4.dp)
