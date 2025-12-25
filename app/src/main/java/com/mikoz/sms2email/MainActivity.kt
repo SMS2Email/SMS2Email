@@ -135,181 +135,185 @@ fun MailPreferencesScreen(
           .collectAsState(initial = PreferencesManager.defaultConfig)
   val coroutineScope = rememberCoroutineScope()
 
-  Column(
-      modifier =
-          modifier
-              .fillMaxSize()
-              .padding(16.dp)
-              .verticalScroll(rememberScrollState())
-              .background(Color.Transparent),
-  ) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = MaterialTheme.shapes.medium,
+  Box(modifier = modifier.fillMaxSize()) {
+    Column(
+        modifier =
+            Modifier.fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+                .background(Color.Transparent),
     ) {
-      Text(
-          text =
-              "SMS2Email automatically forwards received SMS to email via SMTP, even if the app is closed.",
-          style = MaterialTheme.typography.bodyLarge,
-          modifier = Modifier.padding(12.dp),
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor =
-                    if (isSmsPermissionGranted) {
-                      MaterialTheme.colorScheme.primaryContainer
-                    } else {
-                      MaterialTheme.colorScheme.errorContainer
-                    },
-            ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = MaterialTheme.shapes.medium,
-    ) {
-      Text(
-          text =
-              if (isSmsPermissionGranted) "✓ SMS Permission: Granted"
-              else "✗ SMS Permission: Not Granted",
-          style = MaterialTheme.typography.bodyLarge,
-          modifier = Modifier.padding(12.dp),
-          color =
-              if (isSmsPermissionGranted) {
-                MaterialTheme.colorScheme.onPrimaryContainer
-              } else {
-                MaterialTheme.colorScheme.onErrorContainer
-              },
-      )
-    }
-
-    Text(
-        text = "SMTP Preferences",
-        style = MaterialTheme.typography.titleLarge,
-        modifier = Modifier.padding(bottom = 16.dp),
-    )
-
-    if (!isSmsPermissionGranted) {
-      Button(
-          onClick = { onRequestPermission() },
+      Card(
           modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+          colors =
+              CardDefaults.cardColors(
+                  containerColor = MaterialTheme.colorScheme.surfaceVariant,
+              ),
+          elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+          shape = MaterialTheme.shapes.medium,
       ) {
-        Text("Request SMS Permission")
+        Text(
+            text =
+                "SMS2Email automatically forwards received SMS to email via SMTP, even if the app is closed.",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(12.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
+
+      Card(
+          modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+          colors =
+              CardDefaults.cardColors(
+                  containerColor =
+                      if (isSmsPermissionGranted) {
+                        MaterialTheme.colorScheme.primaryContainer
+                      } else {
+                        MaterialTheme.colorScheme.errorContainer
+                      },
+              ),
+          elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+          shape = MaterialTheme.shapes.medium,
+      ) {
+        Text(
+            text =
+                if (isSmsPermissionGranted) "✓ SMS Permission: Granted"
+                else "✗ SMS Permission: Not Granted",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(12.dp),
+            color =
+                if (isSmsPermissionGranted) {
+                  MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                  MaterialTheme.colorScheme.onErrorContainer
+                },
+        )
+      }
+
+      Text(
+          text = "SMTP Preferences",
+          style = MaterialTheme.typography.titleLarge,
+          modifier = Modifier.padding(bottom = 16.dp),
+      )
+
+      if (!isSmsPermissionGranted) {
+        Button(
+            onClick = { onRequestPermission() },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+        ) {
+          Text("Request SMS Permission")
+        }
+      }
+
+      OutlinedTextField(
+          value = config.smtpHost,
+          onValueChange = { value ->
+            coroutineScope.launch { PreferencesManager.updateSmtpHost(context, value) }
+          },
+          label = { Text("SMTP Host") },
+          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+          singleLine = true,
+      )
+
+      OutlinedTextField(
+          value = config.smtpPort.toString(),
+          onValueChange = { value ->
+            value.toIntOrNull()?.let { port ->
+              coroutineScope.launch { PreferencesManager.updateSmtpPort(context, port) }
+            }
+          },
+          label = { Text("SMTP Port") },
+          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+          singleLine = true,
+          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+      )
+
+      OutlinedTextField(
+          value = config.smtpUser,
+          onValueChange = { value ->
+            coroutineScope.launch { PreferencesManager.updateSmtpUser(context, value) }
+          },
+          label = { Text("SMTP Username") },
+          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+          singleLine = true,
+      )
+
+      OutlinedTextField(
+          value = config.smtpPassword,
+          onValueChange = { value ->
+            coroutineScope.launch { PreferencesManager.updateSmtpPassword(context, value) }
+          },
+          label = { Text("SMTP Password") },
+          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+          singleLine = true,
+          visualTransformation = PasswordVisualTransformation(),
+      )
+
+      if (config.smtpHost.contains("gmail", ignoreCase = true) &&
+          config.smtpPassword.replace(" ", "").length != 16) {
+        Text(
+            text =
+                "Your 16-digit Google \"App password\" needs to be entered, not your Google Account password.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        Text(
+            text = "Generate App Password",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+            textDecoration = TextDecoration.Underline,
+            modifier =
+                Modifier.padding(bottom = 12.dp).clickable {
+                  val url = "https://myaccount.google.com/apppasswords"
+                  val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                  context.startActivity(intent)
+                },
+        )
+      }
+
+      OutlinedTextField(
+          value = config.fromEmail,
+          onValueChange = { value ->
+            coroutineScope.launch { PreferencesManager.updateFromEmail(context, value) }
+          },
+          label = { Text("From Email Address") },
+          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+          singleLine = true,
+          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+      )
+
+      OutlinedTextField(
+          value = config.toEmail,
+          onValueChange = { value ->
+            coroutineScope.launch { PreferencesManager.updateToEmail(context, value) }
+          },
+          label = { Text("To Email Address") },
+          modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+          singleLine = true,
+          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+      )
+
+      Button(
+          onClick = {
+            Toast.makeText(context, "Sending email ...", Toast.LENGTH_SHORT).show()
+            MailSender().send(context, "test", "test")
+          },
+          modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text("Send Test Email")
       }
     }
 
-    OutlinedTextField(
-        value = config.smtpHost,
-        onValueChange = { value ->
-          coroutineScope.launch { PreferencesManager.updateSmtpHost(context, value) }
-        },
-        label = { Text("SMTP Host") },
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-        singleLine = true,
+    Text(
+        text = "Licenses...",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier =
+            Modifier.align(Alignment.BottomEnd).padding(16.dp).clickable {
+              context.startActivity(Intent(context, OssLicensesMenuActivity::class.java))
+            },
     )
-
-    OutlinedTextField(
-        value = config.smtpPort.toString(),
-        onValueChange = { value ->
-          value.toIntOrNull()?.let { port ->
-            coroutineScope.launch { PreferencesManager.updateSmtpPort(context, port) }
-          }
-        },
-        label = { Text("SMTP Port") },
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-    )
-
-    OutlinedTextField(
-        value = config.smtpUser,
-        onValueChange = { value ->
-          coroutineScope.launch { PreferencesManager.updateSmtpUser(context, value) }
-        },
-        label = { Text("SMTP Username") },
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-        singleLine = true,
-    )
-
-    OutlinedTextField(
-        value = config.smtpPassword,
-        onValueChange = { value ->
-          coroutineScope.launch { PreferencesManager.updateSmtpPassword(context, value) }
-        },
-        label = { Text("SMTP Password") },
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-        singleLine = true,
-        visualTransformation = PasswordVisualTransformation(),
-    )
-
-    if (config.smtpHost.contains("gmail", ignoreCase = true) &&
-        config.smtpPassword.replace(" ", "").length != 16) {
-      Text(
-          text =
-              "Your 16-digit Google \"App password\" needs to be entered, not your Google Account password.",
-          style = MaterialTheme.typography.bodySmall,
-          color = MaterialTheme.colorScheme.error,
-          modifier = Modifier.padding(bottom = 8.dp),
-      )
-      Text(
-          text = "Generate App Password",
-          style = MaterialTheme.typography.bodySmall,
-          color = MaterialTheme.colorScheme.primary,
-          textDecoration = TextDecoration.Underline,
-          modifier =
-              Modifier.padding(bottom = 12.dp).clickable {
-                val url = "https://myaccount.google.com/apppasswords"
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                context.startActivity(intent)
-              },
-      )
-    }
-
-    OutlinedTextField(
-        value = config.fromEmail,
-        onValueChange = { value ->
-          coroutineScope.launch { PreferencesManager.updateFromEmail(context, value) }
-        },
-        label = { Text("From Email Address") },
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-    )
-
-    OutlinedTextField(
-        value = config.toEmail,
-        onValueChange = { value ->
-          coroutineScope.launch { PreferencesManager.updateToEmail(context, value) }
-        },
-        label = { Text("To Email Address") },
-        modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-    )
-
-    Button(
-        onClick = {
-          Toast.makeText(context, "Sending email ...", Toast.LENGTH_SHORT).show()
-          MailSender().send(context, "test", "test")
-        },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-      Text("Send Test Email")
-    }
-
-    Button(
-        onClick = { context.startActivity(Intent(context, OssLicensesMenuActivity::class.java)) },
-        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-    ) {
-      Text("View Licenses")
-    }
   }
 }
 
