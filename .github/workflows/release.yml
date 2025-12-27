@@ -1,4 +1,4 @@
-name: Pull Request
+name: Release
 
 on:
   push:
@@ -20,6 +20,20 @@ jobs:
         with:
           fetch-depth: 0
       - uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed # v6.2.1
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache: gradle
+      - name: Run Tests
+        run: ./gradlew check
 
   release:
     name: Release
@@ -51,7 +65,7 @@ jobs:
       - name: Decrypt Keystore
         run: |
           echo "${{ secrets.KEYSTORE }}" > keystore.jks.asc
-          gpg -d --passphrase "${{ secrets.KEYSTORE_PASSWORD }}" --batch keystore.jks.asc > keystore.jks
+          gpg -d --passphrase "${{ secrets.KEYSTORE_PASSWORD }}" --batch keystore.jks.asc > app/keystore.jks
           rm keystore.jks.asc
         # https://stackoverflow.com/questions/50104666/difference-between-test-and-check-tasks-in-gradle
       - name: Build Release APK
@@ -66,11 +80,11 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
       - name: Release
         if: github.ref_name == 'main'
-        run: npx --package=semantic-release --package=@semantic-release/git --package=@semantic-release/changelog semantic-release
+        run: npx --package=semantic-release --package=@semantic-release/exec --package=@semantic-release/git --package=@semantic-release/changelog semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Release (Dry Run)
         if: github.ref_name != 'main'
-        run: npx --package=semantic-release --package=@semantic-release/git --package=@semantic-release/changelog semantic-release --dry-run
+        run: npx --package=semantic-release --package=@semantic-release/exec --package=@semantic-release/git --package=@semantic-release/changelog semantic-release --dry-run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
