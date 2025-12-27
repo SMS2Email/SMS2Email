@@ -45,6 +45,9 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
@@ -71,7 +74,7 @@ jobs:
       - name: Build Release APK
         run: ./gradlew :app:assembleRelease -Pandroid.injected.signing.store.file=${{ github.workspace }}/keystore.jks -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_STORE_PASSWORD }}" -Pandroid.injected.signing.key.alias=key0 -Pandroid.injected.signing.key.password="${{ secrets.KEYSTORE_KEY_PASSWORD }}"
       - name: Attest Build Provnance
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v3
         with:
           subject-path: app/build/outputs/apk/release/*.apk
       - name: Upload Release APK file as Artifact
