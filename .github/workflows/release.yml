@@ -69,7 +69,7 @@ jobs:
           rm keystore.jks.asc
         # https://stackoverflow.com/questions/50104666/difference-between-test-and-check-tasks-in-gradle
       - name: Build Release APK
-        run: ./gradlew build -Pandroid.injected.signing.store.file=keystore.jks -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_STORE_PASSWORD }}" -Pandroid.injected.signing.key.alias=key0 -Pandroid.injected.signing.key.password="${{ secrets.KEYSTORE_KEY_PASSWORD }}"
+        run: ./gradlew :app:assembleRelease -Pandroid.injected.signing.store.file=keystore.jks -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_STORE_PASSWORD }}" -Pandroid.injected.signing.key.alias=key0 -Pandroid.injected.signing.key.password="${{ secrets.KEYSTORE_KEY_PASSWORD }}"
       - name: Attest Build Provnance
         uses: actions/attest-build-provenance@v1
         with:
