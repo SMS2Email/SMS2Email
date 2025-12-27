@@ -50,7 +50,7 @@ jobs:
             # Set `KEYSTORE_PASSWORD` secret to the password used to encrypt the keystore.
       - name: Decrypt Keystore
         run: |
-          echo "${{ secrets.KEYSTORE }}" > keystore.asc
+          echo "${{ secrets.KEYSTORE }}" > keystore.jks.asc
           gpg -d --passphrase "${{ secrets.KEYSTORE_PASSWORD }}" --batch keystore.jks.asc > keystore.jks
           rm keystore.jks.asc
         # https://stackoverflow.com/questions/50104666/difference-between-test-and-check-tasks-in-gradle
