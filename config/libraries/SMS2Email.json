@@ -1,7 +1,10 @@
 {
   "uniqueId": "SMS2Email",
-  "developers": ["34j"],
-  "name": "SMS2Email",
-  "tag": "custom",
+  "developers": [
+    {
+      "name": "34j"
+    }
+  ],
+  "name": "[Manually Added] SMS2Email",
   "licenses": ["Apache-2.0"]
 }
