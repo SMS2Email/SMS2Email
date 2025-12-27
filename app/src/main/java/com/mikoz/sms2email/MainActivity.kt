@@ -35,9 +35,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -50,8 +53,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.mikoz.sms2email.ui.theme.SMS2EmailTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
   private val smsPermissionGrantedFlow = MutableStateFlow(false)
@@ -128,7 +131,28 @@ fun MailPreferencesScreen(
   val config by
       PreferencesManager.smtpConfigFlow(context)
           .collectAsState(initial = PreferencesManager.defaultConfig)
-  val coroutineScope = rememberCoroutineScope()
+  val smtpHostState =
+      rememberPreferenceTextState(config.smtpHost) {
+        PreferencesManager.updateSmtpHost(context, it)
+      }
+  val smtpPortState =
+      rememberPreferenceTextState(config.smtpPort.toString()) { value ->
+        value.toIntOrNull()?.let { PreferencesManager.updateSmtpPort(context, it) }
+      }
+  val smtpUserState =
+      rememberPreferenceTextState(config.smtpUser) {
+        PreferencesManager.updateSmtpUser(context, it)
+      }
+  val smtpPasswordState =
+      rememberPreferenceTextState(config.smtpPassword) {
+        PreferencesManager.updateSmtpPassword(context, it)
+      }
+  val fromEmailState =
+      rememberPreferenceTextState(config.fromEmail) {
+        PreferencesManager.updateFromEmail(context, it)
+      }
+  val toEmailState =
+      rememberPreferenceTextState(config.toEmail) { PreferencesManager.updateToEmail(context, it) }
 
   Box(modifier = modifier.fillMaxSize()) {
     Column(
@@ -202,32 +226,17 @@ fun MailPreferencesScreen(
           modifier = Modifier.padding(bottom = 16.dp),
       )
 
-      if (!isSmsPermissionGranted) {
-        Button(
-            onClick = { onRequestPermission() },
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-        ) {
-          Text("Request SMS Permission")
-        }
-      }
-
       OutlinedTextField(
-          value = config.smtpHost,
-          onValueChange = { value ->
-            coroutineScope.launch { PreferencesManager.updateSmtpHost(context, value) }
-          },
+          value = smtpHostState.value,
+          onValueChange = { smtpHostState.value = it },
           label = { Text("SMTP Host") },
           modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
           singleLine = true,
       )
 
       OutlinedTextField(
-          value = config.smtpPort.toString(),
-          onValueChange = { value ->
-            value.toIntOrNull()?.let { port ->
-              coroutineScope.launch { PreferencesManager.updateSmtpPort(context, port) }
-            }
-          },
+          value = smtpPortState.value,
+          onValueChange = { smtpPortState.value = it },
           label = { Text("SMTP Port") },
           modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
           singleLine = true,
@@ -235,20 +244,16 @@ fun MailPreferencesScreen(
       )
 
       OutlinedTextField(
-          value = config.smtpUser,
-          onValueChange = { value ->
-            coroutineScope.launch { PreferencesManager.updateSmtpUser(context, value) }
-          },
+          value = smtpUserState.value,
+          onValueChange = { smtpUserState.value = it },
           label = { Text("SMTP Username") },
           modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
           singleLine = true,
       )
 
       OutlinedTextField(
-          value = config.smtpPassword,
-          onValueChange = { value ->
-            coroutineScope.launch { PreferencesManager.updateSmtpPassword(context, value) }
-          },
+          value = smtpPasswordState.value,
+          onValueChange = { smtpPasswordState.value = it },
           label = { Text("SMTP Password") },
           modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
           singleLine = true,
@@ -279,10 +284,8 @@ fun MailPreferencesScreen(
       }
 
       OutlinedTextField(
-          value = config.fromEmail,
-          onValueChange = { value ->
-            coroutineScope.launch { PreferencesManager.updateFromEmail(context, value) }
-          },
+          value = fromEmailState.value,
+          onValueChange = { fromEmailState.value = it },
           label = { Text("From Email Address") },
           modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
           singleLine = true,
@@ -290,10 +293,8 @@ fun MailPreferencesScreen(
       )
 
       OutlinedTextField(
-          value = config.toEmail,
-          onValueChange = { value ->
-            coroutineScope.launch { PreferencesManager.updateToEmail(context, value) }
-          },
+          value = toEmailState.value,
+          onValueChange = { toEmailState.value = it },
           label = { Text("To Email Address") },
           modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
           singleLine = true,
@@ -326,6 +327,32 @@ fun MailPreferencesScreen(
       }
     }
   }
+}
+
+@Composable
+private fun rememberPreferenceTextState(
+    storedValue: String,
+    debounceMillis: Long = 500L,
+    onPersist: suspend (String) -> Unit,
+): MutableState<String> {
+  val inputState = rememberSaveable { mutableStateOf(storedValue) }
+
+  LaunchedEffect(storedValue) {
+    if (storedValue != inputState.value) {
+      inputState.value = storedValue
+    }
+  }
+
+  LaunchedEffect(inputState.value, storedValue) {
+    val currentValue = inputState.value
+    if (currentValue == storedValue) return@LaunchedEffect
+    delay(debounceMillis)
+    if (currentValue == inputState.value && currentValue != storedValue) {
+      onPersist(currentValue)
+    }
+  }
+
+  return inputState
 }
 
 @Preview(showBackground = true)
