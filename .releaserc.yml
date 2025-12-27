@@ -6,11 +6,14 @@ plugins:
     # app/build.gradle.kts
     # Replace "versionCode = \d+" with "versionCode = ${releases.length + 1}"
     # Replace "versionName = \".*\"" with "versionName = \"${nextRelease.version}\""
+    # Add ${nextRelease.notes} to metadata/en-US/changelogs/${releases.length + 1}.txt
     # See below for contexts:
     # https://github.com/semantic-release/semantic-release/blob/master/docs/developer-guide/plugin.md#context
     - prepareCmd: |
         sed -i -E "s/versionCode = [0-9]+/versionCode = $(( $(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts) + 1 ))/" app/build.gradle.kts
         sed -i -E "s/versionName = \".*\"/versionName = \"${nextRelease.version}\"/" app/build.gradle.kts
+        mkdir -p metadata/en-US/changelogs
+        echo "${nextRelease.notes}" > metadata/en-US/changelogs/${releases.length + 1}.txt
   - - "@semantic-release/git"
     # Commit changes to version files and changelog
     - assets:
