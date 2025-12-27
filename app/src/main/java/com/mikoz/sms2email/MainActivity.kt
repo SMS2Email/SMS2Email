@@ -19,8 +19,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -68,13 +70,14 @@ class MainActivity : ComponentActivity() {
     // window.setBackgroundDrawableResource(R.drawable.background)
     enableEdgeToEdge()
 
-    checkAndRequestSmsPermission()
+    smsPermissionGrantedFlow.value = isSmsPermissionGranted()
+    val initialSmsPermissionGranted = smsPermissionGrantedFlow.value
 
     setContent {
       SMS2EmailTheme {
         val isDark = isSystemInDarkTheme()
         val isSmsPermissionGranted by
-            smsPermissionGrantedFlow.collectAsState(initial = smsPermissionGrantedFlow.value)
+            smsPermissionGrantedFlow.collectAsState(initial = initialSmsPermissionGranted)
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         ) {
@@ -104,14 +107,6 @@ class MainActivity : ComponentActivity() {
           }
         }
       }
-    }
-  }
-
-  private fun checkAndRequestSmsPermission() {
-    if (isSmsPermissionGranted()) {
-      smsPermissionGrantedFlow.value = true
-    } else {
-      requestPermissionLauncher.launch(Manifest.permission.RECEIVE_SMS)
     }
   }
 
@@ -175,19 +170,30 @@ fun MailPreferencesScreen(
           elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
           shape = MaterialTheme.shapes.medium,
       ) {
-        Text(
-            text =
-                if (isSmsPermissionGranted) "✓ SMS Permission: Granted"
-                else "✗ SMS Permission: Not Granted",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(12.dp),
-            color =
-                if (isSmsPermissionGranted) {
-                  MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                  MaterialTheme.colorScheme.onErrorContainer
-                },
-        )
+        Column(modifier = Modifier.padding(12.dp)) {
+          Text(
+              text =
+                  if (isSmsPermissionGranted) "✓ SMS Permission: Granted"
+                  else "✗ SMS Permission: Not Granted",
+              style = MaterialTheme.typography.bodyLarge,
+              color =
+                  if (isSmsPermissionGranted) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                  } else {
+                    MaterialTheme.colorScheme.onErrorContainer
+                  },
+          )
+
+          if (!isSmsPermissionGranted) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = { onRequestPermission() },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+              Text("Request SMS Permission")
+            }
+          }
+        }
       }
 
       Text(
