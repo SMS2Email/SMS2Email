@@ -3,7 +3,7 @@ name: Pull Request
 on:
   push:
     branches:
-    - main
+      - main
   pull_request:
 
 permissions:
@@ -16,10 +16,10 @@ jobs:
     name: Lint Commit Messages
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8   # v6
-      with:
-        fetch-depth: 0
-    - uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed   # v6.2.1
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed # v6.2.1
 
   release:
     name: Release
@@ -32,45 +32,46 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-    - name: Checkout
-      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8   # v6
-      with:
-        fetch-depth: 0
-        ref: ${{ github.sha }}
-    - id: setup-node
-      uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f   # v6
-      with:
-        node-version: lts/*
-    - uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: temurin
-        cache: gradle
-    # Set `KEYSTORE` secret to the output of `gpg -c --armor keystore.jks`.
-    # Set `KEYSTORE_PASSWORD` secret to the password used to encrypt the keystore.
-    - name: Decrypt Keystore
-      run: |
-        echo "${{ secrets.KEYSTORE }}" > keystore.asc
-        gpg -d --passphrase "${{ secrets.KEYSTORE_PASSWORD }}" --batch keystore.jks.asc > keystore.jks
-        rm keystore.jks.asc
-    # https://stackoverflow.com/questions/50104666/difference-between-test-and-check-tasks-in-gradle
-    - name: Build Release APK
-      run: ./gradlew build \ -Pandroid.injected.signing.store.file=keystore.jks \ -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_STORE_PASSWORD }}" \ -Pandroid.injected.signing.key.alias=key0 \ -Pandroid.injected.signing.key.password="${{ secrets.KEYSTORE_KEY_PASSWORD }}"
-    - name: Attest Build Provnance
-      uses: actions/attest-build-provenance@v1
-      with:
-        subject-path: app/build/outputs/apk/release/*.apk
-    - uses: actions/upload-artifact@v4
-      with:
-        name: APK files
-        path: app/build/outputs/apk/release/*.apk
-    - name: Release
-      if: github.ref_name == 'main'
-      run: npx --package=semantic-release \ --package=@semantic-release/git \ --package=@semantic-release/changelog \ semantic-release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Release (Dry Run)
-      if: github.ref_name != 'main'
-      run: npx --package=semantic-release \ --package=@semantic-release/git \ --package=@semantic-release/changelog \ semantic-release --dry-run
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - id: setup-node
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
+        with:
+          node-version: lts/*
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache:
+            gradle
+            # Set `KEYSTORE` secret to the output of `gpg -c --armor keystore.jks`.
+            # Set `KEYSTORE_PASSWORD` secret to the password used to encrypt the keystore.
+      - name: Decrypt Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE }}" > keystore.asc
+          gpg -d --passphrase "${{ secrets.KEYSTORE_PASSWORD }}" --batch keystore.jks.asc > keystore.jks
+          rm keystore.jks.asc
+        # https://stackoverflow.com/questions/50104666/difference-between-test-and-check-tasks-in-gradle
+      - name: Build Release APK
+        run: ./gradlew build \ -Pandroid.injected.signing.store.file=keystore.jks \ -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_STORE_PASSWORD }}" \ -Pandroid.injected.signing.key.alias=key0 \ -Pandroid.injected.signing.key.password="${{ secrets.KEYSTORE_KEY_PASSWORD }}"
+      - name: Attest Build Provnance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: app/build/outputs/apk/release/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: APK files
+          path: app/build/outputs/apk/release/*.apk
+      - name: Release
+        if: github.ref_name == 'main'
+        run: npx --package=semantic-release \ --package=@semantic-release/git \ --package=@semantic-release/changelog \ semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release (Dry Run)
+        if: github.ref_name != 'main'
+        run: npx --package=semantic-release \ --package=@semantic-release/git \ --package=@semantic-release/changelog \ semantic-release --dry-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

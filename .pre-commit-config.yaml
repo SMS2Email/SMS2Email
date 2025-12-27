@@ -1,35 +1,38 @@
 repos:
-- repo: https://github.com/commitizen-tools/commitizen
-  rev: v4.9.1
-  hooks:
-  - id: commitizen
-    stages: [commit-msg]
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v6.0.0
-  hooks:
-  - id: debug-statements
-  - id: check-builtin-literals
-  - id: check-case-conflict
-  - id: check-docstring-first
-  - id: check-json
-  - id: check-toml
-  - id: check-xml
-  - id: check-yaml
-  - id: detect-private-key
-  - id: end-of-file-fixer
-  - id: trailing-whitespace
-  # - repo: https://gitlab.developers.cam.ac.uk/uis/devops/continuous-delivery/precommit-google-java-format
-  #   rev: v1.2.0
-  #   hooks:
-  #     - id: google-java-format
-  #       files: "\\.java$"
-  #       args: ["-i"]
-- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  rev: v2.15.0
-  hooks:
-  - id: pretty-format-java
-    args: [--autofix]
-  - id: pretty-format-kotlin
-    args: [--ktfmt, --autofix]
-  - id: pretty-format-yaml
-    args: [--autofix, --indent, '2']
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.9.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: debug-statements
+      - id: check-builtin-literals
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id:
+          trailing-whitespace
+          # - repo: https://gitlab.developers.cam.ac.uk/uis/devops/continuous-delivery/precommit-google-java-format
+          #   rev: v1.2.0
+          #   hooks:
+          #     - id: google-java-format
+          #       files: "\\.java$"
+          #       args: ["-i"]
+  - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.15.0
+    hooks:
+      - id: pretty-format-java
+        args: [--autofix]
+      - id: pretty-format-kotlin
+        args: [--ktfmt, --autofix]
+  - repo: https://github.com/34j/mirrors-prettier
+    rev: v3.7.4 # Use the sha / tag you want to point at
+    hooks:
+      - id: prettier
