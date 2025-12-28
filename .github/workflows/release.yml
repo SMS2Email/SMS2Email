@@ -92,3 +92,6 @@ jobs:
           KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
           KEYSTORE_KEY_ALIAS: key0
           KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: "app/build/outputs/apk/release/*.apk"
