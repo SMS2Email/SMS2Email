@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/SMS2Email/SMS2Email/compare/v1.0.4...v1.0.5) (2025-12-28)
+
+
+### Bug Fixes
+
+* **release:** fix version bumped after build ([c9fff66](https://github.com/SMS2Email/SMS2Email/commit/c9fff66fc7e8d02d3df185f6f9c8ee297162ad24))
+
 ## [1.0.4](https://github.com/SMS2Email/SMS2Email/compare/v1.0.3...v1.0.4) (2025-12-28)
 
 
