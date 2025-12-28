@@ -35,7 +35,8 @@ module.exports = {
           `sed -i -E "s/versionCode = [0-9]+/versionCode = ${NEXT_VERSION_CODE}/" ${buildGradlePath}`,
           "sed -i -E 's/versionName = .*/versionName = \"${nextRelease.version}\"/' app/build.gradle.kts",
           "mkdir -p metadata/en-US/changelogs",
-          `echo "${nextRelease.notes}" > metadata/en-US/changelogs/${NEXT_VERSION_CODE}.txt`,
+          'echo "${nextRelease.notes}"' +
+            ` > metadata/en-US/changelogs/${NEXT_VERSION_CODE}.txt`,
           "./gradlew :app:assembleRelease \\",
           `  -Pandroid.injected.signing.store.file="${KEYSTORE_FILE}" \\`,
           `  -Pandroid.injected.signing.store.password="${KEYSTORE_STORE_PASSWORD}" \\`,
