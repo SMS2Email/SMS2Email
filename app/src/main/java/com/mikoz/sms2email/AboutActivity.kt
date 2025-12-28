@@ -42,7 +42,9 @@ class AboutActivity : ComponentActivity() {
               )
             },
         ) { innerPadding ->
-          LibrariesContainer(modifier = Modifier.padding(innerPadding).fillMaxSize())
+          LibrariesContainer(
+              produceLibraries(R.raw.aboutlibraries),
+              modifier = Modifier.padding(innerPadding).fillMaxSize())
         }
       }
     }
