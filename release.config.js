@@ -21,7 +21,7 @@ module.exports = {
         // - Writes Fastlane/Play changelog file: metadata/en-US/changelogs/<versionCode>.txt with nextRelease notes.
         // - Builds: ./gradlew :app:assembleRelease using injected signing properties.
         prepareCmd: [
-          "sed -i -E 's/versionCode = [0-9]+/versionCode = $(( $(grep -oP \"versionCode = \\K[0-9]+\" app/build.gradle.kts) + 1 ))/' app/build.gradle.kts",
+          "VERSION_CODE=$(grep -oP 'versionCode = \\K[0-9]+' app/build.gradle.kts); NEW_VERSION_CODE=$((VERSION_CODE + 1)); sed -i -E \"s/versionCode = [0-9]+/versionCode = ${NEW_VERSION_CODE}/\" app/build.gradle.kts",
           "sed -i -E 's/versionName = .*/versionName = \"${nextRelease.version}\"/' app/build.gradle.kts",
           "mkdir -p metadata/en-US/changelogs",
           'echo "${nextRelease.notes}" > metadata/en-US/changelogs/$(grep -oP "versionCode = \\K[0-9]+" app/build.gradle.kts).txt',
