@@ -1,3 +1,14 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+exclude: "CHANGELOG.md|.all-contributorsrc"
+
+ci:
+  autofix_commit_msg: "chore(pre-commit.ci): auto fixes"
+  autoupdate_commit_msg: "chore(pre-commit.ci): pre-commit autoupdate"
+  skip:
+    - pretty-format-java
+    - pretty-format-kotlin
+
 repos:
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.9.1
