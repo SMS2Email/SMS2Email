@@ -72,24 +72,21 @@ jobs:
           echo "${{ secrets.KEYSTORE }}" > keystore.jks.asc
           gpg -d --passphrase "${{ secrets.KEYSTORE_GPG_PASSWORD }}" --batch keystore.jks.asc > keystore.jks
           rm keystore.jks.asc
-      - name: Build Release APK
-        run: ./gradlew :app:assembleRelease -Pandroid.injected.signing.store.file=${{ github.workspace }}/keystore.jks -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_STORE_PASSWORD }}" -Pandroid.injected.signing.key.alias=key0 -Pandroid.injected.signing.key.password="${{ secrets.KEYSTORE_KEY_PASSWORD }}"
-      - name: Attest Build Provenance
-        uses: actions/attest-build-provenance@v3
-        with:
-          subject-path: app/build/outputs/apk/release/*.apk
-      - name: Upload Release APK file as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: APK files
-          path: app/build/outputs/apk/release/*.apk
       - name: Release
         if: github.ref_name == 'main'
         run: npx --package=semantic-release --package=@semantic-release/exec --package=@semantic-release/git --package=@semantic-release/changelog semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KEYSTORE_FILE: ${{ github.workspace }}/keystore.jks
+          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KEYSTORE_KEY_ALIAS: key0
+          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
       - name: Release (Dry Run)
         if: github.ref_name != 'main'
         run: npx --package=semantic-release --package=@semantic-release/exec --package=@semantic-release/git --package=@semantic-release/changelog semantic-release --dry-run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KEYSTORE_FILE: ${{ github.workspace }}/keystore.jks
+          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KEYSTORE_KEY_ALIAS: key0
+          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}

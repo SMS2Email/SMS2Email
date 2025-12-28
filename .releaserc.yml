@@ -14,6 +14,11 @@ plugins:
         sed -i -E "s/versionName = \".*\"/versionName = \"${nextRelease.version}\"/" app/build.gradle.kts
         mkdir -p metadata/en-US/changelogs
         echo "${nextRelease.notes}" > metadata/en-US/changelogs/$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts).txt
+        ./gradlew :app:assembleRelease \
+          -Pandroid.injected.signing.store.file="${KEYSTORE_FILE}" \
+          -Pandroid.injected.signing.store.password="${KEYSTORE_STORE_PASSWORD}" \
+          -Pandroid.injected.signing.key.alias="${KEYSTORE_KEY_ALIAS}" \
+          -Pandroid.injected.signing.key.password="${KEYSTORE_KEY_PASSWORD}"
   - - "@semantic-release/git"
     # Commit changes to version files and changelog
     - assets:
