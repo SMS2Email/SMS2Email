@@ -1,4 +1,4 @@
-package com.mikoz.sms2email
+package io.github.sms2email.sms2email
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import com.mikoz.sms2email.ui.theme.SMS2EmailTheme
+import io.github.sms2email.sms2email.ui.theme.SMS2EmailTheme
 
 class CrashActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {

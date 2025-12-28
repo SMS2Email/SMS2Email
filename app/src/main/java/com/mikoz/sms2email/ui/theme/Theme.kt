@@ -1,4 +1,4 @@
-package com.mikoz.sms2email.ui.theme
+package io.github.sms2email.sms2email.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

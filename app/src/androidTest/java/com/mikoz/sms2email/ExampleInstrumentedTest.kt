@@ -1,4 +1,4 @@
-package com.mikoz.sms2email
+package io.github.sms2email.sms2email
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -17,6 +17,6 @@ class ExampleInstrumentedTest {
   fun useAppContext() {
     // Context of the app under test.
     val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-    assertEquals("com.mikoz.sms2email", appContext.packageName)
+    assertEquals("io.github.sms2email.sms2email", appContext.packageName)
   }
 }

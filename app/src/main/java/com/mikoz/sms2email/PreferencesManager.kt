@@ -1,4 +1,4 @@
-package com.mikoz.sms2email
+package io.github.sms2email.sms2email
 
 import android.content.Context
 import androidx.datastore.core.CorruptionException

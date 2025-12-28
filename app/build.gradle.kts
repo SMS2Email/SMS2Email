@@ -11,11 +11,11 @@ plugins {
 aboutLibraries { collect { configPath = file("../config") } }
 
 android {
-  namespace = "com.mikoz.sms2email"
+  namespace = "io.github.sms2email.sms2email"
   compileSdk { version = release(36) }
 
   defaultConfig {
-    applicationId = "com.mikoz.sms2email"
+    applicationId = "io.github.sms2email.sms2email"
     minSdk = 23
     targetSdk = 36
     versionCode = 0

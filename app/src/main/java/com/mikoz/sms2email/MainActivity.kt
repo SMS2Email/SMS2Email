@@ -1,4 +1,4 @@
-package com.mikoz.sms2email
+package io.github.sms2email.sms2email
 
 import android.Manifest
 import android.content.Context
@@ -52,7 +52,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.mikoz.sms2email.ui.theme.SMS2EmailTheme
+import io.github.sms2email.sms2email.ui.theme.SMS2EmailTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 
