@@ -1,3 +1,12 @@
+## [1.0.4](https://github.com/SMS2Email/SMS2Email/compare/v1.0.3...v1.0.4) (2025-12-28)
+
+
+### Bug Fixes
+
+* pass libraries to LibrariesContainer ([9996657](https://github.com/SMS2Email/SMS2Email/commit/9996657b2dde70ab14fa1a1a9da6abe68d3646f8))
+* pass libraries to LibrariesContainer ([4f093ca](https://github.com/SMS2Email/SMS2Email/commit/4f093caa94cdc60b8d3df36a37df9a2366fdea98))
+* update base.archivesName ([977c27b](https://github.com/SMS2Email/SMS2Email/commit/977c27b6032b98284f795f17ad17f9afb01ae450))
+
 ## [1.0.3](https://github.com/SMS2Email/SMS2Email/compare/v1.0.2...v1.0.3) (2025-12-28)
 
 
