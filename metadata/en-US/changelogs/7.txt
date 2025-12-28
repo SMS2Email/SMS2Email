@@ -1,0 +1,12 @@
+## [1.0.7](https://github.com/SMS2Email/SMS2Email/compare/v1.0.6...v1.0.7) (2025-12-28)
+
+
+### Bug Fixes
+
+* trigger release ([2b6fae7](https://github.com/SMS2Email/SMS2Email/commit/2b6fae7606319793cd5936522bf8cee739e376a0))
+* trigger release ([d4f85a2](https://github.com/SMS2Email/SMS2Email/commit/d4f85a253108520e30da9c80459c859c4ac51503))
+* trigger release ([8696075](https://github.com/SMS2Email/SMS2Email/commit/8696075a6666cf8b506eb37655419e652efebb75))
+
+
+
+
