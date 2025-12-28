@@ -23,5 +23,5 @@ plugins:
   - - "@semantic-release/github"
     # Publish release on GitHub
     - assets:
-        - path: app/build/outputs/apk/release/app-release.apk
+        - path: app/build/outputs/apk/release/*.apk
           label: Android APK

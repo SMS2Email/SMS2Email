@@ -20,6 +20,7 @@ android {
     targetSdk = 36
     versionCode = 5
     versionName = "1.0.3"
+    base.archivesName = "SMS2Email-v" + versionName
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
