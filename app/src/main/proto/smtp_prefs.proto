@@ -4,6 +4,12 @@ option java_package = "io.github.sms2email.sms2email";
 option java_multiple_files = true;
 option java_outer_classname = "SmtpPrefsProto";
 
+enum SmtpEncryptionMode {
+  SMTP_ENCRYPTION_MODE_STARTTLS = 0;
+  SMTP_ENCRYPTION_MODE_SMTPS = 1;
+  SMTP_ENCRYPTION_MODE_NONE = 2;
+}
+
 message SmtpPreferences {
   string smtp_host = 1;
   int32 smtp_port = 2;
@@ -11,4 +17,5 @@ message SmtpPreferences {
   string smtp_password = 4;
   string from_email = 5;
   string to_email = 6;
+  SmtpEncryptionMode encryption_mode = 7;
 }

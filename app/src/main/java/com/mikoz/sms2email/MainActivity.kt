@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -30,6 +31,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -40,6 +46,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,9 +62,11 @@ import androidx.core.content.ContextCompat
 import io.github.sms2email.sms2email.ui.theme.SMS2EmailTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
   private val smsPermissionGrantedFlow = MutableStateFlow(false)
+  private val notificationPermissionGrantedFlow = MutableStateFlow(false)
   private val requestPermissionLauncher =
       registerForActivityResult(
           ActivityResultContracts.RequestPermission(),
@@ -68,6 +77,16 @@ class MainActivity : ComponentActivity() {
         smsPermissionGrantedFlow.value = isGranted
       }
 
+  private val requestNotificationPermissionLauncher =
+      registerForActivityResult(
+          ActivityResultContracts.RequestPermission(),
+      ) { isGranted: Boolean ->
+        if (!isGranted) {
+          Toast.makeText(this, "Notification permission denied", Toast.LENGTH_SHORT).show()
+        }
+        notificationPermissionGrantedFlow.value = isGranted
+      }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     // window.setBackgroundDrawableResource(R.drawable.background)
@@ -76,11 +95,18 @@ class MainActivity : ComponentActivity() {
     smsPermissionGrantedFlow.value = isSmsPermissionGranted()
     val initialSmsPermissionGranted = smsPermissionGrantedFlow.value
 
+    notificationPermissionGrantedFlow.value = isNotificationPermissionGranted()
+    val initialNotificationPermissionGranted = notificationPermissionGrantedFlow.value
+
     setContent {
       SMS2EmailTheme {
         val isDark = isSystemInDarkTheme()
         val isSmsPermissionGranted by
             smsPermissionGrantedFlow.collectAsState(initial = initialSmsPermissionGranted)
+        val isNotificationPermissionGranted by
+            notificationPermissionGrantedFlow.collectAsState(
+                initial = initialNotificationPermissionGranted,
+            )
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         ) {
@@ -104,6 +130,14 @@ class MainActivity : ComponentActivity() {
                   onRequestPermission = {
                     requestPermissionLauncher.launch(Manifest.permission.RECEIVE_SMS)
                   },
+                  isNotificationPermissionGranted = isNotificationPermissionGranted,
+                  onRequestNotificationPermission = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                      requestNotificationPermissionLauncher.launch(
+                          Manifest.permission.POST_NOTIFICATIONS,
+                      )
+                    }
+                  },
                   modifier = Modifier.padding(innerPadding),
               )
             }
@@ -118,13 +152,24 @@ class MainActivity : ComponentActivity() {
           this,
           Manifest.permission.RECEIVE_SMS,
       ) == PackageManager.PERMISSION_GRANTED
+
+  private fun isNotificationPermissionGranted(): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
+    return ContextCompat.checkSelfPermission(
+        this,
+        Manifest.permission.POST_NOTIFICATIONS,
+    ) == PackageManager.PERMISSION_GRANTED
+  }
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun MailPreferencesScreen(
     context: Context,
     isSmsPermissionGranted: Boolean,
     onRequestPermission: () -> Unit = {},
+    isNotificationPermissionGranted: Boolean,
+    onRequestNotificationPermission: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
 
@@ -153,6 +198,19 @@ fun MailPreferencesScreen(
       }
   val toEmailState =
       rememberPreferenceTextState(config.toEmail) { PreferencesManager.updateToEmail(context, it) }
+
+  val coroutineScope = rememberCoroutineScope()
+
+  val portNumber = smtpPortState.value.toIntOrNull()
+
+  val encryptionExpandedState = rememberSaveable { mutableStateOf(false) }
+  val encryptionLabel =
+      when (config.encryptionMode) {
+        SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_NONE -> "None"
+        SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS -> "SMTPS (SSL/TLS)"
+        SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_STARTTLS -> "STARTTLS"
+        else -> "STARTTLS"
+      }
 
   Box(modifier = modifier.fillMaxSize()) {
     Column(
@@ -220,6 +278,46 @@ fun MailPreferencesScreen(
         }
       }
 
+      Card(
+          modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+          colors =
+              CardDefaults.cardColors(
+                  containerColor =
+                      if (isNotificationPermissionGranted) {
+                        MaterialTheme.colorScheme.primaryContainer
+                      } else {
+                        MaterialTheme.colorScheme.errorContainer
+                      },
+              ),
+          elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+          shape = MaterialTheme.shapes.medium,
+      ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+          Text(
+              text =
+                  if (isNotificationPermissionGranted) "✓ Notification Permission: Granted"
+                  else "✗ Notification Permission: Not Granted",
+              style = MaterialTheme.typography.bodyLarge,
+              color =
+                  if (isNotificationPermissionGranted) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                  } else {
+                    MaterialTheme.colorScheme.onErrorContainer
+                  },
+          )
+
+          if (!isNotificationPermissionGranted) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = { onRequestNotificationPermission() },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+              Text("Request Notification Permission")
+            }
+          }
+        }
+      }
+
       Text(
           text = "SMTP Preferences",
           style = MaterialTheme.typography.titleLarge,
@@ -242,6 +340,87 @@ fun MailPreferencesScreen(
           singleLine = true,
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
       )
+
+      ExposedDropdownMenuBox(
+          expanded = encryptionExpandedState.value,
+          onExpandedChange = { encryptionExpandedState.value = !encryptionExpandedState.value },
+          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+      ) {
+        OutlinedTextField(
+            value = encryptionLabel,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            label = { Text("Encryption") },
+            trailingIcon = {
+              ExposedDropdownMenuDefaults.TrailingIcon(expanded = encryptionExpandedState.value)
+            },
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+        )
+        DropdownMenu(
+            expanded = encryptionExpandedState.value,
+            onDismissRequest = { encryptionExpandedState.value = false },
+        ) {
+          DropdownMenuItem(
+              text = { Text("STARTTLS") },
+              onClick = {
+                encryptionExpandedState.value = false
+                coroutineScope.launch {
+                  PreferencesManager.updateEncryptionMode(
+                      context,
+                      SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_STARTTLS,
+                  )
+                }
+              },
+          )
+          DropdownMenuItem(
+              text = { Text("SMTPS (SSL/TLS)") },
+              onClick = {
+                encryptionExpandedState.value = false
+                coroutineScope.launch {
+                  PreferencesManager.updateEncryptionMode(
+                      context,
+                      SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS,
+                  )
+                }
+              },
+          )
+          DropdownMenuItem(
+              text = { Text("None") },
+              onClick = {
+                encryptionExpandedState.value = false
+                coroutineScope.launch {
+                  PreferencesManager.updateEncryptionMode(
+                      context,
+                      SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_NONE,
+                  )
+                }
+              },
+          )
+        }
+      }
+
+      val warningText =
+          when {
+            config.encryptionMode == SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_NONE ->
+                "Warning: No encryption selected. This may expose credentials and email content."
+            portNumber == 465 &&
+                config.encryptionMode != SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS ->
+                "Warning: Port 465 is typically used with SMTPS (SSL/TLS)."
+            portNumber != null &&
+                portNumber != 465 &&
+                config.encryptionMode == SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS ->
+                "Warning: SMTPS (SSL/TLS) typically uses port 465."
+            else -> null
+          }
+      if (warningText != null) {
+        Text(
+            text = warningText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+      }
 
       OutlinedTextField(
           value = smtpUserState.value,
@@ -304,7 +483,7 @@ fun MailPreferencesScreen(
       Button(
           onClick = {
             Toast.makeText(context, "Sending email ...", Toast.LENGTH_SHORT).show()
-            MailSender().send(context, "test", "test")
+            MailSender().send(context, "[TEST]", "This is a test email.")
           },
           modifier = Modifier.fillMaxWidth(),
       ) {
