@@ -1,3 +1,31 @@
+## [1.1.1](https://github.com/SMS2Email/SMS2Email/compare/v1.1.0...v1.1.1) (2026-01-13)
+
+
+### Bug Fixes
+
+* add monochrome (themed) app icon support ([#13](https://github.com/SMS2Email/SMS2Email/issues/13)) ([01f46d7](https://github.com/SMS2Email/SMS2Email/commit/01f46d779f3753f8c9dc664536dc4dc83b57d8b8))
+
+# [1.1.0](https://github.com/SMS2Email/SMS2Email/compare/v1.0.12...v1.1.0) (2026-01-13)
+
+
+### Features
+
+* support smtps ([#17](https://github.com/SMS2Email/SMS2Email/issues/17)) ([eb47a57](https://github.com/SMS2Email/SMS2Email/commit/eb47a57637121871cc42639cdfc7c825c6c5912e))
+
+## [1.0.12](https://github.com/SMS2Email/SMS2Email/compare/v1.0.11...v1.0.12) (2026-01-12)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.google.protobuf:protobuf-javalite to v4.33.4 ([#16](https://github.com/SMS2Email/SMS2Email/issues/16)) ([b27ec02](https://github.com/SMS2Email/SMS2Email/commit/b27ec02c5b81f28fa3f32f11ce89149af10271c5))
+
+## [1.0.11](https://github.com/SMS2Email/SMS2Email/compare/v1.0.10...v1.0.11) (2026-01-10)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.google.protobuf:protobuf-javalite to v4.33.3 ([#14](https://github.com/SMS2Email/SMS2Email/issues/14)) ([4f90e5b](https://github.com/SMS2Email/SMS2Email/commit/4f90e5b75f0180b6948e6c4c975978f8d2571fe5))
+
 ## [1.0.10](https://github.com/SMS2Email/SMS2Email/compare/v1.0.9...v1.0.10) (2025-12-28)
 
 

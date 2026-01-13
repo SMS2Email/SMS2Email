@@ -1,0 +1,10 @@
+## [1.1.1](https://github.com/SMS2Email/SMS2Email/compare/v1.1.0...v1.1.1) (2026-01-13)
+
+
+### Bug Fixes
+
+* add monochrome (themed) app icon support ([#13](https://github.com/SMS2Email/SMS2Email/issues/13)) ([01f46d7](https://github.com/SMS2Email/SMS2Email/commit/01f46d779f3753f8c9dc664536dc4dc83b57d8b8))
+
+
+
+
