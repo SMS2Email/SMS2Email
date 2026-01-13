@@ -1,0 +1,10 @@
+# [1.1.0](https://github.com/SMS2Email/SMS2Email/compare/v1.0.12...v1.1.0) (2026-01-13)
+
+
+### Features
+
+* support smtps ([#17](https://github.com/SMS2Email/SMS2Email/issues/17)) ([eb47a57](https://github.com/SMS2Email/SMS2Email/commit/eb47a57637121871cc42639cdfc7c825c6c5912e))
+
+
+
+

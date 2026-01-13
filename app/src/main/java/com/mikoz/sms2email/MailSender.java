@@ -2,6 +2,9 @@ package io.github.sms2email.sms2email;
 
 import android.app.NotificationManager;
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.Toast;
 import androidx.core.app.NotificationCompat;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -26,7 +29,26 @@ public class MailSender {
     prop.put("mail.smtp.host", config.getSmtpHost());
     prop.put("mail.smtp.port", smtpPort);
     prop.put("mail.smtp.auth", "true");
-    prop.put("mail.smtp.starttls.enable", "true");
+
+    // Configure transport encryption.
+    switch (config.getEncryptionMode()) {
+      case SMTP_ENCRYPTION_MODE_NONE:
+        prop.setProperty("mail.smtp.starttls.enable", "false");
+        prop.setProperty("mail.smtp.ssl.enable", "false"); // enabled by default
+        break;
+      case SMTP_ENCRYPTION_MODE_SMTPS:
+        prop.setProperty("mail.smtp.starttls.enable", "false");
+        prop.setProperty("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+        prop.setProperty("mail.smtp.socketFactory.fallback", "false");
+        prop.setProperty("mail.smtp.ssl.checkserveridentity", "true");
+        break;
+      case SMTP_ENCRYPTION_MODE_STARTTLS:
+      default:
+        prop.setProperty("mail.smtp.starttls.enable", "true");
+        prop.setProperty("mail.smtp.starttls.required", "true");
+        prop.setProperty("mail.smtp.ssl.checkserveridentity", "true");
+        break;
+    }
 
     try {
       Session session =
@@ -38,10 +60,8 @@ public class MailSender {
                 }
               });
       Message message = new MimeMessage(session);
-      message.setFrom(new InternetAddress(config.getFromEmail()));
-      message.setRecipients(
-          Message.RecipientType.TO,
-          InternetAddress.parse(subject + " <" + config.getToEmail() + ">"));
+      message.setFrom(InternetAddress.parse(subject + " <" + config.getToEmail() + ">")[0]);
+      message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(config.getToEmail()));
       message.setSubject("SMS from " + subject);
       message.setText(content);
       Transport.send(message);
@@ -64,6 +84,14 @@ public class MailSender {
       PrintWriter pw = new PrintWriter(sw);
       e.printStackTrace(pw);
       String stackTrace = sw.toString();
+
+      // Show toast notification on failure
+      new Handler(Looper.getMainLooper())
+          .post(
+              () ->
+                  Toast.makeText(
+                          context, "Failed to send email\n" + e.getMessage(), Toast.LENGTH_LONG)
+                      .show());
 
       NotificationHelper.createNotificationChannel(context);
 
