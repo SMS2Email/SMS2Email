@@ -60,7 +60,7 @@ public class MailSender {
                 }
               });
       Message message = new MimeMessage(session);
-      message.setFrom(InternetAddress.parse(subject + " <" + config.getToEmail() + ">")[0]);
+      message.setFrom(InternetAddress.parse(subject + " <" + config.getFromEmail() + ">")[0]);
       message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(config.getToEmail()));
       message.setSubject("SMS from " + subject);
       message.setText(content);
