@@ -21,12 +21,12 @@ val Context.smtpDataStore: DataStore<SmtpPreferences> by
 
 data class SmtpConfig(
     val smtpHost: String = "smtp.gmail.com",
-    val smtpPort: Int = 587,
+    val smtpPort: Int = 465,
     val smtpUser: String = "",
     val smtpPassword: String = "",
     val fromEmail: String = "",
     val toEmail: String = "",
-    val encryptionMode: SmtpEncryptionMode = SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_STARTTLS,
+    val encryptionMode: SmtpEncryptionMode = SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS,
 )
 
 object SmtpPreferencesSerializer : Serializer<SmtpPreferences> {
