@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/SMS2Email/SMS2Email/compare/v1.1.1...v1.1.2) (2026-01-13)
+
+
+### Bug Fixes
+
+* fix wrong from address ([#18](https://github.com/SMS2Email/SMS2Email/issues/18)) ([a0772b1](https://github.com/SMS2Email/SMS2Email/commit/a0772b12459f7b68f6732812a288ddf64e2707c7))
+
 ## [1.1.1](https://github.com/SMS2Email/SMS2Email/compare/v1.1.0...v1.1.1) (2026-01-13)
 
 
