@@ -58,7 +58,7 @@ jobs:
           ref: ${{ github.sha }}
       - uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3
       - id: setup-node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
         with:
           node-version: lts/*
       - uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5
