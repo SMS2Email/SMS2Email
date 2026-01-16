@@ -321,6 +321,7 @@ fun MailPreferencesScreen(
       Text(
           text = "SMTP Preferences",
           style = MaterialTheme.typography.titleLarge,
+          color = MaterialTheme.colorScheme.onBackground,
           modifier = Modifier.padding(bottom = 16.dp),
       )
 
