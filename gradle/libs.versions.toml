@@ -1,6 +1,6 @@
 [versions]
 aboutLibraries = "13.2.1"
-agp = "8.13.2"
+agp = "9.0.0"
 androidMail = "1.6.8"
 appcompat = "1.7.1"
 datastorePreferences = "1.2.0"
