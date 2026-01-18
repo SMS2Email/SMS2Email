@@ -18,4 +18,5 @@ message SmtpPreferences {
   string from_email = 5;
   string to_email = 6;
   SmtpEncryptionMode encryption_mode = 7;
+  bool enabled = 8;
 }
