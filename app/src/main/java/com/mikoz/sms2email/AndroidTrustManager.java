@@ -20,12 +20,11 @@ public class AndroidTrustManager implements X509TrustManager {
   public AndroidTrustManager() throws KeyStoreException, NoSuchAlgorithmException {
     // Get the Android KeyStore which includes both system and user certificates
     KeyStore keyStore = KeyStore.getInstance("AndroidCAStore");
-    if (keyStore != null) {
-      try {
-        keyStore.load(null, null);
-      } catch (Exception e) {
-        // If loading fails, continue with null keystore which will use system defaults
-      }
+    try {
+      keyStore.load(null, null);
+    } catch (Exception e) {
+      // If loading fails, continue with null keystore which will use system defaults
+      keyStore = null;
     }
 
     // Initialize the trust manager factory with the Android keystore

@@ -40,7 +40,9 @@ public class MailSender {
       SSLContext sslContext = SSLContext.getInstance("TLS");
       sslContext.init(null, new TrustManager[] {trustManager}, new SecureRandom());
       SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+      // Set both SSL and STARTTLS socket factories to ensure custom trust manager is used
       prop.put("mail.smtp.ssl.socketFactory", sslSocketFactory);
+      prop.put("mail.smtp.starttls.socketFactory", sslSocketFactory);
     } catch (Exception e) {
       // If custom trust manager fails, continue with default behavior
       // This ensures backward compatibility if there's an issue with the trust manager
