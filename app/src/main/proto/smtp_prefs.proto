@@ -18,4 +18,6 @@ message SmtpPreferences {
   string from_email = 5;
   string to_email = 6;
   SmtpEncryptionMode encryption_mode = 7;
+  bool pgp_enabled = 8;
+  repeated int64 pgp_key_ids = 9;
 }

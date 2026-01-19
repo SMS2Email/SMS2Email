@@ -30,6 +30,24 @@ public class MailSender {
     prop.put("mail.smtp.port", smtpPort);
     prop.put("mail.smtp.auth", "true");
 
+    // Encrypt content with PGP if enabled
+    String emailContent = content;
+    if (config.getPgpEnabled() && !config.getPgpKeyIds().isEmpty()) {
+      OpenPGPHelper pgpHelper = new OpenPGPHelper(context);
+      if (pgpHelper.isOpenKeychainInstalled()) {
+        String encrypted = pgpHelper.encryptText(content, config.getPgpKeyIds());
+        if (encrypted != null) {
+          emailContent = encrypted;
+        } else {
+          // If encryption fails, add a warning to the content
+          emailContent = "[PGP ENCRYPTION FAILED - SENDING UNENCRYPTED]\n\n" + content;
+        }
+      } else {
+        // If OpenKeychain is not installed, add a warning
+        emailContent = "[PGP ENABLED BUT OPENKEYCHAIN NOT INSTALLED - SENDING UNENCRYPTED]\n\n" + content;
+      }
+    }
+
     // Configure transport encryption.
     switch (config.getEncryptionMode()) {
       case SMTP_ENCRYPTION_MODE_NONE:
@@ -63,7 +81,7 @@ public class MailSender {
       message.setFrom(InternetAddress.parse(subject + " <" + config.getFromEmail() + ">")[0]);
       message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(config.getToEmail()));
       message.setSubject("SMS from " + subject);
-      message.setText(content);
+      message.setText(emailContent);
       Transport.send(message);
 
       NotificationHelper.createNotificationChannel(context);
