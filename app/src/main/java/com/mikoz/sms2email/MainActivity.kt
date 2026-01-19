@@ -95,7 +95,7 @@ class MainActivity : ComponentActivity() {
       ) { result ->
         if (result.resultCode == RESULT_OK) {
           result.data?.let { data ->
-            val keyIds = data.getLongArrayExtra("key_ids")
+            val keyIds = data.getLongArrayExtra(OpenPGPHelper.EXTRA_KEY_IDS)
             if (keyIds != null && keyIds.isNotEmpty()) {
               lifecycleScope.launch {
                 PreferencesManager.updatePgpKeyIds(this@MainActivity, keyIds.toList())

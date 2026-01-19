@@ -14,7 +14,6 @@ import org.openintents.openpgp.util.OpenPgpServiceConnection
 
 class OpenPGPHelper(private val context: Context) {
   private val TAG = "OpenPGPHelper"
-  private val OPENKEYCHAIN_PACKAGE = "org.sufficientlysecure.keychain"
 
   /**
    * Encrypts the given text using the specified PGP key IDs.
@@ -34,6 +33,7 @@ class OpenPGPHelper(private val context: Context) {
     val connection = OpenPgpServiceConnection(context, OPENKEYCHAIN_PACKAGE)
 
     try {
+      // Note: bindToService() is synchronous and should only be called from a background thread
       connection.bindToService()
 
       val service: IOpenPgpService2? = connection.service
@@ -61,12 +61,24 @@ class OpenPGPHelper(private val context: Context) {
         }
         OpenPgpApi.RESULT_CODE_USER_INTERACTION_REQUIRED -> {
           Log.e(TAG, "User interaction required for encryption")
-          val error = resultIntent.getParcelableExtra<OpenPgpError>(OpenPgpApi.RESULT_ERROR)
-          Log.e(TAG, "Error: ${error?.message}")
+          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val error = resultIntent.getParcelableExtra(OpenPgpApi.RESULT_ERROR, OpenPgpError::class.java)
+            Log.e(TAG, "Error: ${error?.message}")
+          } else {
+            @Suppress("DEPRECATION")
+            val error = resultIntent.getParcelableExtra<OpenPgpError>(OpenPgpApi.RESULT_ERROR)
+            Log.e(TAG, "Error: ${error?.message}")
+          }
         }
         OpenPgpApi.RESULT_CODE_ERROR -> {
-          val error = resultIntent.getParcelableExtra<OpenPgpError>(OpenPgpApi.RESULT_ERROR)
-          Log.e(TAG, "Encryption error: ${error?.message}")
+          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val error = resultIntent.getParcelableExtra(OpenPgpApi.RESULT_ERROR, OpenPgpError::class.java)
+            Log.e(TAG, "Encryption error: ${error?.message}")
+          } else {
+            @Suppress("DEPRECATION")
+            val error = resultIntent.getParcelableExtra<OpenPgpError>(OpenPgpApi.RESULT_ERROR)
+            Log.e(TAG, "Encryption error: ${error?.message}")
+          }
         }
       }
     } catch (e: Exception) {
@@ -93,13 +105,15 @@ class OpenPGPHelper(private val context: Context) {
   companion object {
     const val REQUEST_CODE_SELECT_KEY = 9527
     const val REQUEST_CODE_ENCRYPT = 9528
+    const val EXTRA_KEY_IDS = "key_ids"
+    private const val OPENKEYCHAIN_PACKAGE = "org.sufficientlysecure.keychain"
 
     /**
      * Creates an intent to select a public key from OpenKeychain.
      */
     fun createSelectKeyIntent(): Intent {
       val intent = Intent(OpenPgpApi.ACTION_GET_KEY_IDS)
-      intent.setPackage("org.sufficientlysecure.keychain")
+      intent.setPackage(OPENKEYCHAIN_PACKAGE)
       return intent
     }
   }
