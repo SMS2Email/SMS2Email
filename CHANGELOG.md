@@ -1,3 +1,10 @@
+## [1.1.7](https://github.com/SMS2Email/SMS2Email/compare/v1.1.6...v1.1.7) (2026-01-30)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.google.protobuf:protobuf-javalite to v4.33.5 ([#37](https://github.com/SMS2Email/SMS2Email/issues/37)) ([b83abf9](https://github.com/SMS2Email/SMS2Email/commit/b83abf998e57446ee6a17191645d57cedd2ba1e9))
+
 ## [1.1.6](https://github.com/SMS2Email/SMS2Email/compare/v1.1.5...v1.1.6) (2026-01-29)
 
 
