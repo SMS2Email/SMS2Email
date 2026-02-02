@@ -27,6 +27,8 @@ data class SmtpConfig(
     val fromEmail: String = "",
     val toEmail: String = "",
     val encryptionMode: SmtpEncryptionMode = SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS,
+    val sim1PhoneNumber: String = "",
+    val sim2PhoneNumber: String = "",
 )
 
 object SmtpPreferencesSerializer : Serializer<SmtpPreferences> {
@@ -61,6 +63,8 @@ object PreferencesManager {
             encryptionMode =
                 prefs.encryptionMode.takeIf { it != SmtpEncryptionMode.UNRECOGNIZED }
                     ?: defaultConfig.encryptionMode,
+            sim1PhoneNumber = prefs.sim1PhoneNumber,
+            sim2PhoneNumber = prefs.sim2PhoneNumber,
         )
       }
 
@@ -111,6 +115,20 @@ object PreferencesManager {
       value: SmtpEncryptionMode,
   ) {
     context.smtpDataStore.updateData { it.toBuilder().setEncryptionMode(value).build() }
+  }
+
+  suspend fun updateSim1PhoneNumber(
+      context: Context,
+      value: String,
+  ) {
+    context.smtpDataStore.updateData { it.toBuilder().setSim1PhoneNumber(value).build() }
+  }
+
+  suspend fun updateSim2PhoneNumber(
+      context: Context,
+      value: String,
+  ) {
+    context.smtpDataStore.updateData { it.toBuilder().setSim2PhoneNumber(value).build() }
   }
 
   suspend fun getConfig(context: Context): SmtpConfig = smtpConfigFlow(context).first()
