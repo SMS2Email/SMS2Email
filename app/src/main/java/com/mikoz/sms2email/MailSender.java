@@ -8,6 +8,7 @@ import android.widget.Toast;
 import androidx.core.app.NotificationCompat;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.security.SecureRandom;
 import java.util.Properties;
 import javax.mail.Authenticator;
 import javax.mail.Message;
@@ -16,6 +17,9 @@ import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
 
 public class MailSender {
   public void send(Context context, String subject, String content) {
@@ -29,6 +33,20 @@ public class MailSender {
     prop.put("mail.smtp.host", config.getSmtpHost());
     prop.put("mail.smtp.port", smtpPort);
     prop.put("mail.smtp.auth", "true");
+
+    // Configure custom SSL socket factory to use Android's certificate store
+    try {
+      AndroidTrustManager trustManager = new AndroidTrustManager();
+      SSLContext sslContext = SSLContext.getInstance("TLS");
+      sslContext.init(null, new TrustManager[] {trustManager}, new SecureRandom());
+      SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+      // Set both SSL and STARTTLS socket factories to ensure custom trust manager is used
+      prop.put("mail.smtp.ssl.socketFactory", sslSocketFactory);
+      prop.put("mail.smtp.starttls.socketFactory", sslSocketFactory);
+    } catch (Exception e) {
+      // If custom trust manager fails, continue with default behavior
+      // This ensures backward compatibility if there's an issue with the trust manager
+    }
 
     // Configure transport encryption.
     switch (config.getEncryptionMode()) {
