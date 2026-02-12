@@ -1,3 +1,10 @@
+## [1.1.9](https://github.com/SMS2Email/SMS2Email/compare/v1.1.8...v1.1.9) (2026-02-12)
+
+
+### Bug Fixes
+
+* **deps:** update dependency androidx.activity:activity-compose to v1.12.4 ([#43](https://github.com/SMS2Email/SMS2Email/issues/43)) ([4ebd630](https://github.com/SMS2Email/SMS2Email/commit/4ebd63011bada5b3582afb6b7cf7689a907dfc03))
+
 ## [1.1.8](https://github.com/SMS2Email/SMS2Email/compare/v1.1.7...v1.1.8) (2026-01-30)
 
 
