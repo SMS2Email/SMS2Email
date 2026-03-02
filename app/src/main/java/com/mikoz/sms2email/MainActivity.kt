@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.telephony.TelephonyManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -67,6 +68,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
   private val smsPermissionGrantedFlow = MutableStateFlow(false)
   private val notificationPermissionGrantedFlow = MutableStateFlow(false)
+  private val phoneStatePermissionGrantedFlow = MutableStateFlow(false)
   private val requestPermissionLauncher =
       registerForActivityResult(
           ActivityResultContracts.RequestPermission(),
@@ -87,6 +89,16 @@ class MainActivity : ComponentActivity() {
         notificationPermissionGrantedFlow.value = isGranted
       }
 
+  private val requestPhoneStatePermissionLauncher =
+      registerForActivityResult(
+          ActivityResultContracts.RequestPermission(),
+      ) { isGranted: Boolean ->
+        if (!isGranted) {
+          Toast.makeText(this, "Phone state permission denied - dual SIM detection may not work", Toast.LENGTH_SHORT).show()
+        }
+        phoneStatePermissionGrantedFlow.value = isGranted
+      }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     // window.setBackgroundDrawableResource(R.drawable.background)
@@ -98,6 +110,9 @@ class MainActivity : ComponentActivity() {
     notificationPermissionGrantedFlow.value = isNotificationPermissionGranted()
     val initialNotificationPermissionGranted = notificationPermissionGrantedFlow.value
 
+    phoneStatePermissionGrantedFlow.value = isPhoneStatePermissionGranted()
+    val initialPhoneStatePermissionGranted = phoneStatePermissionGrantedFlow.value
+
     setContent {
       SMS2EmailTheme {
         val isDark = isSystemInDarkTheme()
@@ -106,6 +121,10 @@ class MainActivity : ComponentActivity() {
         val isNotificationPermissionGranted by
             notificationPermissionGrantedFlow.collectAsState(
                 initial = initialNotificationPermissionGranted,
+            )
+        val isPhoneStatePermissionGranted by
+            phoneStatePermissionGrantedFlow.collectAsState(
+                initial = initialPhoneStatePermissionGranted,
             )
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
@@ -138,6 +157,13 @@ class MainActivity : ComponentActivity() {
                       )
                     }
                   },
+                  isPhoneStatePermissionGranted = isPhoneStatePermissionGranted,
+                  onRequestPhoneStatePermission = {
+                    requestPhoneStatePermissionLauncher.launch(
+                        Manifest.permission.READ_PHONE_STATE,
+                    )
+                  },
+                  hasDualSim = hasDualSim(),
                   modifier = Modifier.padding(innerPadding),
               )
             }
@@ -160,6 +186,37 @@ class MainActivity : ComponentActivity() {
         Manifest.permission.POST_NOTIFICATIONS,
     ) == PackageManager.PERMISSION_GRANTED
   }
+
+  private fun isPhoneStatePermissionGranted(): Boolean =
+      ContextCompat.checkSelfPermission(
+          this,
+          Manifest.permission.READ_PHONE_STATE,
+      ) == PackageManager.PERMISSION_GRANTED
+
+  private fun hasDualSim(): Boolean {
+    return try {
+      val telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+      if (telephonyManager != null) {
+        val phoneCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+          telephonyManager.phoneCount
+        } else {
+          // For older devices, use reflection to get phone count
+          try {
+            val method = telephonyManager.javaClass.getMethod("getPhoneCount")
+            method.invoke(telephonyManager) as? Int ?: 1
+          } catch (e: Exception) {
+            1
+          }
+        }
+        phoneCount >= 2
+      } else {
+        false
+      }
+    } catch (e: Exception) {
+      // If we can't determine, assume single SIM
+      false
+    }
+  }
 }
 
 @Composable
@@ -170,6 +227,9 @@ fun MailPreferencesScreen(
     onRequestPermission: () -> Unit = {},
     isNotificationPermissionGranted: Boolean,
     onRequestNotificationPermission: () -> Unit = {},
+    isPhoneStatePermissionGranted: Boolean = false,
+    onRequestPhoneStatePermission: () -> Unit = {},
+    hasDualSim: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
 
@@ -198,6 +258,14 @@ fun MailPreferencesScreen(
       }
   val toEmailState =
       rememberPreferenceTextState(config.toEmail) { PreferencesManager.updateToEmail(context, it) }
+  val sim1PhoneState =
+      rememberPreferenceTextState(config.sim1PhoneNumber) {
+        PreferencesManager.updateSim1PhoneNumber(context, it)
+      }
+  val sim2PhoneState =
+      rememberPreferenceTextState(config.sim2PhoneNumber) {
+        PreferencesManager.updateSim2PhoneNumber(context, it)
+      }
 
   val coroutineScope = rememberCoroutineScope()
 
@@ -313,6 +381,54 @@ fun MailPreferencesScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
               Text("Request Notification Permission")
+            }
+          }
+        }
+      }
+
+      if (hasDualSim) {
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        if (isPhoneStatePermissionGranted) {
+                          MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                          MaterialTheme.colorScheme.errorContainer
+                        },
+                ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = MaterialTheme.shapes.medium,
+        ) {
+          Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text =
+                    if (isPhoneStatePermissionGranted) "✓ Phone State Permission: Granted"
+                    else "✗ Phone State Permission: Not Granted",
+                style = MaterialTheme.typography.bodyLarge,
+                color =
+                    if (isPhoneStatePermissionGranted) {
+                      MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                      MaterialTheme.colorScheme.onErrorContainer
+                    },
+            )
+
+            if (!isPhoneStatePermissionGranted) {
+              Spacer(modifier = Modifier.height(4.dp))
+              Text(
+                  text = "Required for dual SIM detection",
+                  style = MaterialTheme.typography.bodySmall,
+                  color = MaterialTheme.colorScheme.onErrorContainer,
+              )
+              Spacer(modifier = Modifier.height(8.dp))
+              Button(
+                  onClick = { onRequestPhoneStatePermission() },
+                  modifier = Modifier.fillMaxWidth(),
+              ) {
+                Text("Request Phone State Permission")
+              }
             }
           }
         }
@@ -486,10 +602,46 @@ fun MailPreferencesScreen(
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
       )
 
+      if (hasDualSim) {
+        Text(
+            text = "Dual SIM Settings",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
+        )
+
+        Text(
+            text = "Configure phone numbers for each SIM card to identify which SIM received the SMS in the email subject.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+
+        OutlinedTextField(
+            value = sim1PhoneState.value,
+            onValueChange = { sim1PhoneState.value = it },
+            label = { Text("SIM 1 Phone Number") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+        )
+
+        OutlinedTextField(
+            value = sim2PhoneState.value,
+            onValueChange = { sim2PhoneState.value = it },
+            label = { Text("SIM 2 Phone Number") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+        )
+      }
+
+      Spacer(modifier = Modifier.height(12.dp))
+
       Button(
           onClick = {
             Toast.makeText(context, "Sending email ...", Toast.LENGTH_SHORT).show()
-            MailSender().send(context, "[TEST]", "This is a test email.")
+            MailSender().send(context, "[TEST]", "This is a test email.", -1)
           },
           modifier = Modifier.fillMaxWidth(),
       ) {
