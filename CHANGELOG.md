@@ -1,3 +1,10 @@
+## [1.1.13](https://github.com/SMS2Email/SMS2Email/compare/v1.1.12...v1.1.13) (2026-03-11)
+
+
+### Bug Fixes
+
+* **deps:** update dependency androidx.datastore:datastore to v1.2.1 ([#53](https://github.com/SMS2Email/SMS2Email/issues/53)) ([149724a](https://github.com/SMS2Email/SMS2Email/commit/149724a0ddfcde7e7dd011e9464bc1ab462d6f22))
+
 ## [1.1.12](https://github.com/SMS2Email/SMS2Email/compare/v1.1.11...v1.1.12) (2026-02-28)
 
 
