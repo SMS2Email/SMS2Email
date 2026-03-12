@@ -1,3 +1,10 @@
+## [1.1.16](https://github.com/SMS2Email/SMS2Email/compare/v1.1.15...v1.1.16) (2026-03-12)
+
+
+### Bug Fixes
+
+* **deps:** update dependency androidx.core:core-ktx to v1.18.0 ([#56](https://github.com/SMS2Email/SMS2Email/issues/56)) ([efb184c](https://github.com/SMS2Email/SMS2Email/commit/efb184cebe4e6297833940ede3911a645fbe07a1))
+
 ## [1.1.15](https://github.com/SMS2Email/SMS2Email/compare/v1.1.14...v1.1.15) (2026-03-12)
 
 
