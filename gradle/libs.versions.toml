@@ -1,5 +1,5 @@
 [versions]
-aboutLibraries = "14.0.0"
+aboutLibraries = "14.0.1"
 agp = "8.13.2"
 androidMail = "1.6.8"
 appcompat = "1.7.1"
