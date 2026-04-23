@@ -1,3 +1,10 @@
+## [1.1.22](https://github.com/SMS2Email/SMS2Email/compare/v1.1.21...v1.1.22) (2026-04-23)
+
+
+### Bug Fixes
+
+* **deps:** update dependency androidx.compose:compose-bom to v2026.04.01 ([#72](https://github.com/SMS2Email/SMS2Email/issues/72)) ([c677a8d](https://github.com/SMS2Email/SMS2Email/commit/c677a8d1c634784702b62156d710048b34f4c606))
+
 ## [1.1.21](https://github.com/SMS2Email/SMS2Email/compare/v1.1.20...v1.1.21) (2026-04-10)
 
 
