@@ -1,3 +1,10 @@
+## [1.1.23](https://github.com/SMS2Email/SMS2Email/compare/v1.1.22...v1.1.23) (2026-05-01)
+
+
+### Bug Fixes
+
+* **deps:** update aboutlibraries to v14.1.0 ([#76](https://github.com/SMS2Email/SMS2Email/issues/76)) ([4bb7cd4](https://github.com/SMS2Email/SMS2Email/commit/4bb7cd4c62ef07049a2e3c604cd0446d5a5d407f))
+
 ## [1.1.22](https://github.com/SMS2Email/SMS2Email/compare/v1.1.21...v1.1.22) (2026-04-23)
 
 
