@@ -1,3 +1,10 @@
+## [1.1.27](https://github.com/SMS2Email/SMS2Email/compare/v1.1.26...v1.1.27) (2026-05-20)
+
+
+### Bug Fixes
+
+* **deps:** update protobuf monorepo to v4.35.0 ([#83](https://github.com/SMS2Email/SMS2Email/issues/83)) ([0b5ef3c](https://github.com/SMS2Email/SMS2Email/commit/0b5ef3cfdb7449d2f7f663d0fd3c3e01d30c4274))
+
 ## [1.1.26](https://github.com/SMS2Email/SMS2Email/compare/v1.1.25...v1.1.26) (2026-05-19)
 
 
