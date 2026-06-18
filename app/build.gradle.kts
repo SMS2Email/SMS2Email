@@ -18,8 +18,8 @@ android {
     applicationId = "io.github.sms2email.sms2email"
     minSdk = 23
     targetSdk = 36
-    versionCode = 42
-    versionName = "1.1.29"
+    versionCode = 43
+    versionName = "1.1.30"
     base.archivesName = "SMS2Email-v" + versionName
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

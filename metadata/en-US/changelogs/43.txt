@@ -1,0 +1,7 @@
+## [1.1.30](https://github.com/SMS2Email/SMS2Email/compare/v1.1.29...v1.1.30) (2026-06-18)
+
+
+### Bug Fixes
+
+* **deps:** update composebom to v2026.06.00 ([#92](https://github.com/SMS2Email/SMS2Email/issues/92)) ([ef6e980](https://github.com/SMS2Email/SMS2Email/commit/ef6e980e7edcc18427702eae80a92ba6707eed28))
+
