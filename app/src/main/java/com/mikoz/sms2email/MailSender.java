@@ -19,10 +19,14 @@ import javax.mail.internet.MimeMessage;
 
 public class MailSender {
   public void send(Context context, String subject, String content) {
-    new Thread(() -> sendSync(context, subject, content)).start();
+    send(context, subject, content, 0);
   }
 
-  private void sendSync(Context context, String subject, String content) {
+  public void send(Context context, String subject, String content, int simSlot) {
+    new Thread(() -> sendSync(context, subject, content, simSlot)).start();
+  }
+
+  private void sendSync(Context context, String subject, String content, int simSlot) {
     final SmtpConfig config = PreferencesManager.getConfigBlocking(context);
     final int smtpPort = config.getSmtpPort();
     final Properties prop = new Properties();
@@ -62,7 +66,17 @@ public class MailSender {
       Message message = new MimeMessage(session);
       message.setFrom(InternetAddress.parse(subject + " <" + config.getFromEmail() + ">")[0]);
       message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(config.getToEmail()));
-      message.setSubject("SMS from " + subject);
+
+      // Use SIM phone number in subject if configured (but not for test emails with simSlot = -1)
+      String phoneNumber = "";
+      if (simSlot == 0 && !config.getSim1PhoneNumber().isEmpty()) {
+        phoneNumber = config.getSim1PhoneNumber();
+      } else if (simSlot == 1 && !config.getSim2PhoneNumber().isEmpty()) {
+        phoneNumber = config.getSim2PhoneNumber();
+      }
+
+      String emailSubject = (phoneNumber.isEmpty() || simSlot < 0) ? "SMS from " + subject : "SMS from " + phoneNumber;
+      message.setSubject(emailSubject);
       message.setText(content);
       Transport.send(message);
 
