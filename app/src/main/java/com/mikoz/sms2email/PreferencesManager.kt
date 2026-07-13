@@ -54,7 +54,7 @@ object PreferencesManager {
         SmtpConfig(
             smtpHost = prefs.smtpHost.takeIf { it.isNotBlank() } ?: defaultConfig.smtpHost,
             smtpPort = if (port > 0) port else defaultConfig.smtpPort,
-            smtpUser = prefs.smtpUser,
+            smtpUser = prefs.smtpUser.takeIf { it.isNotBlank() } ?: prefs.fromEmail,
             smtpPassword = prefs.smtpPassword,
             fromEmail = prefs.fromEmail,
             toEmail = prefs.toEmail,
