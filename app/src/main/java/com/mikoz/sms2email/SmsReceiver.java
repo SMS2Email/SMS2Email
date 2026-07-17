@@ -13,6 +13,12 @@ public class SmsReceiver extends BroadcastReceiver {
   @Override
   public void onReceive(Context context, Intent intent) {
     if (Objects.equals(intent.getAction(), Telephony.Sms.Intents.SMS_RECEIVED_ACTION)) {
+      // Check if the app is enabled
+      SmtpConfig config = PreferencesManager.getConfigBlocking(context);
+      if (!config.getEnabled()) {
+        return; // App is disabled, do not forward SMS
+      }
+
       SmsMessage[] messages = Telephony.Sms.Intents.getMessagesFromIntent(intent);
       String sender = messages[0].getOriginatingAddress();
       StringBuilder bodyText = new StringBuilder();

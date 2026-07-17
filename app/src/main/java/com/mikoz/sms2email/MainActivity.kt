@@ -39,6 +39,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -236,6 +237,56 @@ fun MailPreferencesScreen(
             modifier = Modifier.padding(12.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+      }
+
+      Card(
+          modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+          colors =
+              CardDefaults.cardColors(
+                  containerColor =
+                      if (config.enabled) {
+                        MaterialTheme.colorScheme.primaryContainer
+                      } else {
+                        MaterialTheme.colorScheme.secondaryContainer
+                      },
+              ),
+          elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+          shape = MaterialTheme.shapes.medium,
+      ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "SMS Forwarding",
+                style = MaterialTheme.typography.titleMedium,
+                color =
+                    if (config.enabled) {
+                      MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                      MaterialTheme.colorScheme.onSecondaryContainer
+                    },
+            )
+            Text(
+                text = if (config.enabled) "Enabled" else "Disabled",
+                style = MaterialTheme.typography.bodyMedium,
+                color =
+                    if (config.enabled) {
+                      MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                      MaterialTheme.colorScheme.onSecondaryContainer
+                    },
+            )
+          }
+          Switch(
+              checked = config.enabled,
+              onCheckedChange = { enabled ->
+                coroutineScope.launch { PreferencesManager.updateEnabled(context, enabled) }
+              },
+          )
+        }
       }
 
       Card(
