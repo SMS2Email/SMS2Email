@@ -428,13 +428,18 @@ fun MailPreferencesScreen(
         )
       }
 
-      OutlinedTextField(
-          value = smtpUserState.value,
-          onValueChange = { smtpUserState.value = it },
-          label = { Text("SMTP Username") },
-          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-          singleLine = true,
-      )
+      // Hide SMTP Username for Gmail (fromEmail is used as login instead).
+      val isGmail = config.smtpHost.contains("gmail", ignoreCase = true)
+
+      if (!isGmail) {
+        OutlinedTextField(
+            value = smtpUserState.value,
+            onValueChange = { smtpUserState.value = it },
+            label = { Text("SMTP Username") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            singleLine = true,
+        )
+      }
 
       OutlinedTextField(
           value = smtpPasswordState.value,
@@ -445,8 +450,7 @@ fun MailPreferencesScreen(
           visualTransformation = PasswordVisualTransformation(),
       )
 
-      if (config.smtpHost.contains("gmail", ignoreCase = true) &&
-          config.smtpPassword.replace(" ", "").length != 16) {
+      if (isGmail && config.smtpPassword.replace(" ", "").length != 16) {
         Text(
             text =
                 "Your 16-digit Google \"App password\" needs to be entered, not your Google Account password.",
