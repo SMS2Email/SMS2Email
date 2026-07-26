@@ -436,6 +436,18 @@ fun MailPreferencesScreen(
           singleLine = true,
       )
 
+      if (config.smtpHost.contains("gmail", ignoreCase = true) &&
+          smtpUserState.value.isNotBlank() &&
+          smtpUserState.value != fromEmailState.value) {
+        Text(
+            text =
+                "Warning: For Gmail, the SMTP username should be your full email address (same as From Email Address).",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+      }
+
       OutlinedTextField(
           value = smtpPasswordState.value,
           onValueChange = { smtpPasswordState.value = it },
