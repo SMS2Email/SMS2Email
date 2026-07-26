@@ -1,0 +1,7 @@
+## [1.1.32](https://github.com/SMS2Email/SMS2Email/compare/v1.1.31...v1.1.32) (2026-07-26)
+
+
+### Bug Fixes
+
+* add warning for Gmail SMTP username mismatch ([#108](https://github.com/SMS2Email/SMS2Email/issues/108)) ([acf351d](https://github.com/SMS2Email/SMS2Email/commit/acf351d253e6a936e413cae899a9f039083241e9))
+
