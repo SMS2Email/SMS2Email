@@ -27,7 +27,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3
+      - uses: burrunan/gradle-cache-action@404534c34a2faa40430357a3183522a845b04f3b # v3
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: "17"
@@ -56,7 +56,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.sha }}
-      - uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3
+      - uses: burrunan/gradle-cache-action@404534c34a2faa40430357a3183522a845b04f3b # v3
       - id: setup-node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
