@@ -1,0 +1,7 @@
+## [1.1.33](https://github.com/SMS2Email/SMS2Email/compare/v1.1.32...v1.1.33) (2026-08-13)
+
+
+### Bug Fixes
+
+* **deps:** update dependency androidx.appcompat:appcompat to v1.8.0 ([#118](https://github.com/SMS2Email/SMS2Email/issues/118)) ([6b20649](https://github.com/SMS2Email/SMS2Email/commit/6b20649f38594f38ae0eb2531f6d8c56a7459d32))
+
