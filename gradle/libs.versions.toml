@@ -2,7 +2,7 @@
 aboutLibraries = "14.2.1"
 agp = "8.13.2"
 androidMail = "1.6.8"
-appcompat = "1.7.1"
+appcompat = "1.8.0"
 datastorePreferences = "1.2.1"
 datastoreProto = "1.2.1"
 materialIconsExtended = "1.7.8"
