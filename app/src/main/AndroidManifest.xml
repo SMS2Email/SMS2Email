@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!--Required to post SMTP requests-->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!--Required to detect which SIM card received the SMS-->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <application
         android:name=".CustomApplication"
         android:allowBackup="true"
