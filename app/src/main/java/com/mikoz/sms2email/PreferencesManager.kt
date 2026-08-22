@@ -27,6 +27,7 @@ data class SmtpConfig(
     val fromEmail: String = "",
     val toEmail: String = "",
     val encryptionMode: SmtpEncryptionMode = SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS,
+    val enabled: Boolean = true,
 )
 
 object SmtpPreferencesSerializer : Serializer<SmtpPreferences> {
@@ -61,6 +62,12 @@ object PreferencesManager {
             encryptionMode =
                 prefs.encryptionMode.takeIf { it != SmtpEncryptionMode.UNRECOGNIZED }
                     ?: defaultConfig.encryptionMode,
+            enabled =
+                when (prefs.forwardingState) {
+                  ForwardingState.FORWARDING_STATE_DISABLED -> false
+                  ForwardingState.FORWARDING_STATE_ENABLED -> true
+                  else -> defaultConfig.enabled // UNSET defaults to enabled
+                },
         )
       }
 
@@ -111,6 +118,16 @@ object PreferencesManager {
       value: SmtpEncryptionMode,
   ) {
     context.smtpDataStore.updateData { it.toBuilder().setEncryptionMode(value).build() }
+  }
+
+  suspend fun updateEnabled(
+      context: Context,
+      value: Boolean,
+  ) {
+    val state =
+        if (value) ForwardingState.FORWARDING_STATE_ENABLED
+        else ForwardingState.FORWARDING_STATE_DISABLED
+    context.smtpDataStore.updateData { it.toBuilder().setForwardingState(state).build() }
   }
 
   suspend fun getConfig(context: Context): SmtpConfig = smtpConfigFlow(context).first()
