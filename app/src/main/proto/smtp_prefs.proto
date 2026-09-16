@@ -10,6 +10,12 @@ enum SmtpEncryptionMode {
   SMTP_ENCRYPTION_MODE_NONE = 2;
 }
 
+enum ForwardingState {
+  FORWARDING_STATE_UNSET = 0;
+  FORWARDING_STATE_ENABLED = 1;
+  FORWARDING_STATE_DISABLED = 2;
+}
+
 message SmtpPreferences {
   string smtp_host = 1;
   int32 smtp_port = 2;
@@ -18,4 +24,5 @@ message SmtpPreferences {
   string from_email = 5;
   string to_email = 6;
   SmtpEncryptionMode encryption_mode = 7;
+  ForwardingState forwarding_state = 8;
 }
