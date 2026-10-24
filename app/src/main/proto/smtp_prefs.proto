@@ -18,4 +18,6 @@ message SmtpPreferences {
   string from_email = 5;
   string to_email = 6;
   SmtpEncryptionMode encryption_mode = 7;
+  string sim1_phone_number = 8;
+  string sim2_phone_number = 9;
 }
