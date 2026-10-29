@@ -8,7 +8,7 @@ import android.telephony.SmsMessage;
 import java.util.Objects;
 
 public class SmsReceiver extends BroadcastReceiver {
-  protected MailSender mailSender = new MailSender();
+  protected MessageSender messageSender;
 
   @Override
   public void onReceive(Context context, Intent intent) {
@@ -21,7 +21,9 @@ public class SmsReceiver extends BroadcastReceiver {
       }
       String message = bodyText.toString();
 
-      mailSender.send(context, sender, message);
+      MessageSender activeSender =
+          messageSender != null ? messageSender : CustomApplication.getMessageSender(context);
+      activeSender.send(context, sender, message);
     }
   }
 }

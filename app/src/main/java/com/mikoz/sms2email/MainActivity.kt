@@ -124,8 +124,9 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxSize(),
                 containerColor = Color.Transparent,
             ) { innerPadding ->
-              MailPreferencesScreen(
+              PreferencesScreen(
                   context = this@MainActivity,
+                  messageSender = CustomApplication.getMessageSender(this@MainActivity),
                   isSmsPermissionGranted = isSmsPermissionGranted,
                   onRequestPermission = {
                     requestPermissionLauncher.launch(Manifest.permission.RECEIVE_SMS)
@@ -164,12 +165,13 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun MailPreferencesScreen(
+fun PreferencesScreen(
     context: Context,
     isSmsPermissionGranted: Boolean,
     onRequestPermission: () -> Unit = {},
     isNotificationPermissionGranted: Boolean,
     onRequestNotificationPermission: () -> Unit = {},
+    messageSender: MessageSender = CustomApplication.getMessageSender(context),
     modifier: Modifier = Modifier,
 ) {
 
@@ -198,10 +200,24 @@ fun MailPreferencesScreen(
       }
   val toEmailState =
       rememberPreferenceTextState(config.toEmail) { PreferencesManager.updateToEmail(context, it) }
+  val httpUrlState =
+      rememberPreferenceTextState(config.httpUrl) { PreferencesManager.updateHttpUrl(context, it) }
+  val httpAuthHeaderState =
+      rememberPreferenceTextState(config.httpAuthHeader) {
+        PreferencesManager.updateHttpAuthHeader(context, it)
+      }
 
   val coroutineScope = rememberCoroutineScope()
 
   val portNumber = smtpPortState.value.toIntOrNull()
+
+  val providerExpandedState = rememberSaveable { mutableStateOf(false) }
+  val providerLabel =
+      when (config.provider) {
+        ForwardingProvider.FORWARDING_PROVIDER_HTTP -> "HTTP Service"
+        ForwardingProvider.FORWARDING_PROVIDER_EMAIL,
+        ForwardingProvider.UNRECOGNIZED -> "Email (SMTP)"
+      }
 
   val encryptionExpandedState = rememberSaveable { mutableStateOf(false) }
   val encryptionLabel =
@@ -231,7 +247,7 @@ fun MailPreferencesScreen(
       ) {
         Text(
             text =
-                "SMS2Email automatically forwards received SMS to email via SMTP, even if the app is closed.",
+                "SMS2Email automatically forwards received SMS via the selected provider (Email or HTTP), even if the app is closed.",
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(12.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -319,42 +335,25 @@ fun MailPreferencesScreen(
       }
 
       Text(
-          text = "SMTP Preferences",
+          text = "Forwarding Provider",
           style = MaterialTheme.typography.titleLarge,
           color = MaterialTheme.colorScheme.onBackground,
-          modifier = Modifier.padding(bottom = 16.dp),
-      )
-
-      OutlinedTextField(
-          value = smtpHostState.value,
-          onValueChange = { smtpHostState.value = it },
-          label = { Text("SMTP Host") },
-          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-          singleLine = true,
-      )
-
-      OutlinedTextField(
-          value = smtpPortState.value,
-          onValueChange = { smtpPortState.value = it },
-          label = { Text("SMTP Port") },
-          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-          singleLine = true,
-          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+          modifier = Modifier.padding(bottom = 12.dp),
       )
 
       ExposedDropdownMenuBox(
-          expanded = encryptionExpandedState.value,
-          onExpandedChange = { encryptionExpandedState.value = !encryptionExpandedState.value },
-          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+          expanded = providerExpandedState.value,
+          onExpandedChange = { providerExpandedState.value = !providerExpandedState.value },
+          modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
       ) {
         OutlinedTextField(
-            value = encryptionLabel,
+            value = providerLabel,
             onValueChange = {},
             readOnly = true,
             singleLine = true,
-            label = { Text("Encryption") },
+            label = { Text("Active Provider") },
             trailingIcon = {
-              ExposedDropdownMenuDefaults.TrailingIcon(expanded = encryptionExpandedState.value)
+              ExposedDropdownMenuDefaults.TrailingIcon(expanded = providerExpandedState.value)
             },
             modifier =
                 Modifier.menuAnchor(
@@ -364,41 +363,29 @@ fun MailPreferencesScreen(
                     .fillMaxWidth(),
         )
         ExposedDropdownMenu(
-            expanded = encryptionExpandedState.value,
-            onDismissRequest = { encryptionExpandedState.value = false },
+            expanded = providerExpandedState.value,
+            onDismissRequest = { providerExpandedState.value = false },
         ) {
           DropdownMenuItem(
-              text = { Text("STARTTLS") },
+              text = { Text("Email (SMTP)") },
               onClick = {
-                encryptionExpandedState.value = false
+                providerExpandedState.value = false
                 coroutineScope.launch {
-                  PreferencesManager.updateEncryptionMode(
+                  PreferencesManager.updateProvider(
                       context,
-                      SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_STARTTLS,
+                      ForwardingProvider.FORWARDING_PROVIDER_EMAIL,
                   )
                 }
               },
           )
           DropdownMenuItem(
-              text = { Text("SMTPS (SSL/TLS)") },
+              text = { Text("HTTP Service") },
               onClick = {
-                encryptionExpandedState.value = false
+                providerExpandedState.value = false
                 coroutineScope.launch {
-                  PreferencesManager.updateEncryptionMode(
+                  PreferencesManager.updateProvider(
                       context,
-                      SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS,
-                  )
-                }
-              },
-          )
-          DropdownMenuItem(
-              text = { Text("None") },
-              onClick = {
-                encryptionExpandedState.value = false
-                coroutineScope.launch {
-                  PreferencesManager.updateEncryptionMode(
-                      context,
-                      SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_NONE,
+                      ForwardingProvider.FORWARDING_PROVIDER_HTTP,
                   )
                 }
               },
@@ -406,106 +393,241 @@ fun MailPreferencesScreen(
         }
       }
 
-      val warningText =
-          when {
-            config.encryptionMode == SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_NONE ->
-                "Warning: No encryption selected. This may expose credentials and email content."
-            portNumber == 465 &&
-                config.encryptionMode != SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS ->
-                "Warning: Port 465 is typically used with SMTPS (SSL/TLS)."
-            portNumber != null &&
-                portNumber != 465 &&
-                config.encryptionMode == SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS ->
-                "Warning: SMTPS (SSL/TLS) typically uses port 465."
-            else -> null
-          }
-      if (warningText != null) {
+      if (config.provider == ForwardingProvider.FORWARDING_PROVIDER_HTTP) {
         Text(
-            text = warningText,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
-            modifier = Modifier.padding(bottom = 12.dp),
+            text = "HTTP Preferences",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(bottom = 16.dp),
         )
-      }
 
-      OutlinedTextField(
-          value = smtpUserState.value,
-          onValueChange = { smtpUserState.value = it },
-          label = { Text("SMTP Username") },
-          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-          singleLine = true,
-      )
+        OutlinedTextField(
+            value = httpUrlState.value,
+            onValueChange = { httpUrlState.value = it },
+            label = { Text("HTTP Endpoint URL") },
+            placeholder = { Text("https://example.com/sms-webhook") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+        )
 
-      if (config.smtpHost.contains("gmail", ignoreCase = true) &&
-          smtpUserState.value.isNotBlank() &&
-          smtpUserState.value != fromEmailState.value) {
+        if (httpUrlState.value.trim().startsWith("http://", ignoreCase = true)) {
+          Text(
+              text =
+                  "Warning: Plain HTTP is unencrypted. Use HTTPS to protect credentials and SMS content.",
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.error,
+              modifier = Modifier.padding(bottom = 12.dp),
+          )
+        }
+
+        OutlinedTextField(
+            value = httpAuthHeaderState.value,
+            onValueChange = { httpAuthHeaderState.value = it },
+            label = { Text("Authorization / API Key Header (Optional)") },
+            placeholder = { Text("Bearer <token> or X-API-Key: <key>") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+        )
+
         Text(
             text =
-                "Warning: For Gmail, the SMTP username should be your full email address (same as From Email Address).",
+                "Sends HTTP POST with JSON body: {\"sender\": \"...\", \"message\": \"...\", \"timestamp\": ...}",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
-            modifier = Modifier.padding(bottom = 12.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 24.dp),
         )
-      }
-
-      OutlinedTextField(
-          value = smtpPasswordState.value,
-          onValueChange = { smtpPasswordState.value = it },
-          label = { Text("SMTP Password") },
-          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-          singleLine = true,
-          visualTransformation = PasswordVisualTransformation(),
-      )
-
-      if (config.smtpHost.contains("gmail", ignoreCase = true) &&
-          config.smtpPassword.replace(" ", "").length != 16) {
+      } else {
         Text(
-            text =
-                "Your 16-digit Google \"App password\" needs to be entered, not your Google Account password.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
-            modifier = Modifier.padding(bottom = 8.dp),
+            text = "SMTP Preferences",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(bottom = 16.dp),
         )
-        Text(
-            text = "Generate App Password",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.primary,
-            textDecoration = TextDecoration.Underline,
-            modifier =
-                Modifier.padding(bottom = 12.dp).clickable {
-                  val url = "https://myaccount.google.com/apppasswords"
-                  val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                  context.startActivity(intent)
+
+        OutlinedTextField(
+            value = smtpHostState.value,
+            onValueChange = { smtpHostState.value = it },
+            label = { Text("SMTP Host") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            singleLine = true,
+        )
+
+        OutlinedTextField(
+            value = smtpPortState.value,
+            onValueChange = { smtpPortState.value = it },
+            label = { Text("SMTP Port") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        )
+
+        ExposedDropdownMenuBox(
+            expanded = encryptionExpandedState.value,
+            onExpandedChange = { encryptionExpandedState.value = !encryptionExpandedState.value },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+        ) {
+          OutlinedTextField(
+              value = encryptionLabel,
+              onValueChange = {},
+              readOnly = true,
+              singleLine = true,
+              label = { Text("Encryption") },
+              trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = encryptionExpandedState.value)
+              },
+              modifier =
+                  Modifier.menuAnchor(
+                          type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                          enabled = true,
+                      )
+                      .fillMaxWidth(),
+          )
+          ExposedDropdownMenu(
+              expanded = encryptionExpandedState.value,
+              onDismissRequest = { encryptionExpandedState.value = false },
+          ) {
+            DropdownMenuItem(
+                text = { Text("STARTTLS") },
+                onClick = {
+                  encryptionExpandedState.value = false
+                  coroutineScope.launch {
+                    PreferencesManager.updateEncryptionMode(
+                        context,
+                        SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_STARTTLS,
+                    )
+                  }
                 },
+            )
+            DropdownMenuItem(
+                text = { Text("SMTPS (SSL/TLS)") },
+                onClick = {
+                  encryptionExpandedState.value = false
+                  coroutineScope.launch {
+                    PreferencesManager.updateEncryptionMode(
+                        context,
+                        SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS,
+                    )
+                  }
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("None") },
+                onClick = {
+                  encryptionExpandedState.value = false
+                  coroutineScope.launch {
+                    PreferencesManager.updateEncryptionMode(
+                        context,
+                        SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_NONE,
+                    )
+                  }
+                },
+            )
+          }
+        }
+
+        val warningText =
+            when {
+              config.encryptionMode == SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_NONE ->
+                  "Warning: No encryption selected. This may expose credentials and email content."
+              portNumber == 465 &&
+                  config.encryptionMode != SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS ->
+                  "Warning: Port 465 is typically used with SMTPS (SSL/TLS)."
+              portNumber != null &&
+                  portNumber != 465 &&
+                  config.encryptionMode == SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS ->
+                  "Warning: SMTPS (SSL/TLS) typically uses port 465."
+              else -> null
+            }
+        if (warningText != null) {
+          Text(
+              text = warningText,
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.error,
+              modifier = Modifier.padding(bottom = 12.dp),
+          )
+        }
+
+        OutlinedTextField(
+            value = smtpUserState.value,
+            onValueChange = { smtpUserState.value = it },
+            label = { Text("SMTP Username") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            singleLine = true,
+        )
+
+        if (config.smtpHost.contains("gmail", ignoreCase = true) &&
+            smtpUserState.value.isNotBlank() &&
+            smtpUserState.value != fromEmailState.value) {
+          Text(
+              text =
+                  "Warning: For Gmail, the SMTP username should be your full email address (same as From Email Address).",
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.error,
+              modifier = Modifier.padding(bottom = 12.dp),
+          )
+        }
+
+        OutlinedTextField(
+            value = smtpPasswordState.value,
+            onValueChange = { smtpPasswordState.value = it },
+            label = { Text("SMTP Password") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+        )
+
+        if (config.smtpHost.contains("gmail", ignoreCase = true) &&
+            config.smtpPassword.replace(" ", "").length != 16) {
+          Text(
+              text =
+                  "Your 16-digit Google \"App password\" needs to be entered, not your Google Account password.",
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.error,
+              modifier = Modifier.padding(bottom = 8.dp),
+          )
+          Text(
+              text = "Generate App Password",
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.primary,
+              textDecoration = TextDecoration.Underline,
+              modifier =
+                  Modifier.padding(bottom = 12.dp).clickable {
+                    val url = "https://myaccount.google.com/apppasswords"
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    context.startActivity(intent)
+                  },
+          )
+        }
+
+        OutlinedTextField(
+            value = fromEmailState.value,
+            onValueChange = { fromEmailState.value = it },
+            label = { Text("From Email Address") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+        )
+
+        OutlinedTextField(
+            value = toEmailState.value,
+            onValueChange = { toEmailState.value = it },
+            label = { Text("To Email Address") },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
         )
       }
-
-      OutlinedTextField(
-          value = fromEmailState.value,
-          onValueChange = { fromEmailState.value = it },
-          label = { Text("From Email Address") },
-          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-          singleLine = true,
-          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-      )
-
-      OutlinedTextField(
-          value = toEmailState.value,
-          onValueChange = { toEmailState.value = it },
-          label = { Text("To Email Address") },
-          modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
-          singleLine = true,
-          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-      )
 
       Button(
           onClick = {
-            Toast.makeText(context, "Sending email ...", Toast.LENGTH_SHORT).show()
-            MailSender().send(context, "[TEST]", "This is a test email.")
+            Toast.makeText(context, "Sending test message ...", Toast.LENGTH_SHORT).show()
+            messageSender.send(context, "[TEST]", "This is a test message.")
           },
           modifier = Modifier.fillMaxWidth(),
       ) {
-        Text("Send Test Email")
+        Text("Send Test Message")
       }
 
       Row(
@@ -554,7 +676,7 @@ private fun rememberPreferenceTextState(
 
 @Preview(showBackground = true)
 @Composable
-fun MailPreferencesScreenPreview() {
+fun PreferencesScreenPreview() {
   SMS2EmailTheme {
     // Note: Preview doesn't have access to actual SharedPreferences
     // In a real preview, you'd need to mock the context
