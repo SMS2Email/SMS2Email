@@ -27,6 +27,9 @@ data class SmtpConfig(
     val fromEmail: String = "",
     val toEmail: String = "",
     val encryptionMode: SmtpEncryptionMode = SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS,
+    val provider: ForwardingProvider = ForwardingProvider.FORWARDING_PROVIDER_EMAIL,
+    val httpUrl: String = "",
+    val httpAuthHeader: String = "",
 )
 
 object SmtpPreferencesSerializer : Serializer<SmtpPreferences> {
@@ -61,6 +64,11 @@ object PreferencesManager {
             encryptionMode =
                 prefs.encryptionMode.takeIf { it != SmtpEncryptionMode.UNRECOGNIZED }
                     ?: defaultConfig.encryptionMode,
+            provider =
+                prefs.provider.takeIf { it != ForwardingProvider.UNRECOGNIZED }
+                    ?: defaultConfig.provider,
+            httpUrl = prefs.httpUrl,
+            httpAuthHeader = prefs.httpAuthHeader,
         )
       }
 
@@ -111,6 +119,27 @@ object PreferencesManager {
       value: SmtpEncryptionMode,
   ) {
     context.smtpDataStore.updateData { it.toBuilder().setEncryptionMode(value).build() }
+  }
+
+  suspend fun updateProvider(
+      context: Context,
+      value: ForwardingProvider,
+  ) {
+    context.smtpDataStore.updateData { it.toBuilder().setProvider(value).build() }
+  }
+
+  suspend fun updateHttpUrl(
+      context: Context,
+      value: String,
+  ) {
+    context.smtpDataStore.updateData { it.toBuilder().setHttpUrl(value).build() }
+  }
+
+  suspend fun updateHttpAuthHeader(
+      context: Context,
+      value: String,
+  ) {
+    context.smtpDataStore.updateData { it.toBuilder().setHttpAuthHeader(value).build() }
   }
 
   suspend fun getConfig(context: Context): SmtpConfig = smtpConfigFlow(context).first()

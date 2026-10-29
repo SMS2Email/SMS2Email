@@ -1,10 +1,13 @@
 package io.github.sms2email.sms2email
 
 import android.app.Application
+import android.content.Context
 import android.content.Intent
 import kotlin.system.exitProcess
 
 class CustomApplication : Application() {
+  @Volatile var messageSender: MessageSender = DelegatingMessageSender()
+
   override fun onCreate() {
     super.onCreate()
     setupCrashHandler()
@@ -37,5 +40,13 @@ class CustomApplication : Application() {
     val pw = java.io.PrintWriter(sw)
     throwable.printStackTrace(pw)
     return sw.toString()
+  }
+
+  companion object {
+    private val fallbackSender: MessageSender = DelegatingMessageSender()
+
+    @JvmStatic
+    fun getMessageSender(context: Context): MessageSender =
+        (context.applicationContext as? CustomApplication)?.messageSender ?: fallbackSender
   }
 }

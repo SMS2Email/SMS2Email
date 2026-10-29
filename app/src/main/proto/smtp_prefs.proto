@@ -10,6 +10,11 @@ enum SmtpEncryptionMode {
   SMTP_ENCRYPTION_MODE_NONE = 2;
 }
 
+enum ForwardingProvider {
+  FORWARDING_PROVIDER_EMAIL = 0;
+  FORWARDING_PROVIDER_HTTP = 1;
+}
+
 message SmtpPreferences {
   string smtp_host = 1;
   int32 smtp_port = 2;
@@ -18,4 +23,7 @@ message SmtpPreferences {
   string from_email = 5;
   string to_email = 6;
   SmtpEncryptionMode encryption_mode = 7;
+  ForwardingProvider provider = 8;
+  string http_url = 9;
+  string http_auth_header = 10;
 }

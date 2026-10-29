@@ -17,7 +17,8 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
-public class MailSender {
+public class MailSender implements MessageSender {
+  @Override
   public void send(Context context, String subject, String content) {
     new Thread(() -> sendSync(context, subject, content)).start();
   }
