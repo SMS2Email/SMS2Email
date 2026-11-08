@@ -1,3 +1,10 @@
+## [1.1.38](https://github.com/SMS2Email/SMS2Email/compare/v1.1.37...v1.1.38) (2026-11-08)
+
+
+### Bug Fixes
+
+* migrate to Kotlin ([76a4b0f](https://github.com/SMS2Email/SMS2Email/commit/76a4b0f7745ce31082763533ba931024d22a1a91))
+
 ## [1.1.37](https://github.com/SMS2Email/SMS2Email/compare/v1.1.36...v1.1.37) (2026-11-08)
 
 
