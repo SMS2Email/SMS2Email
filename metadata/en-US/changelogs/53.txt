@@ -1,0 +1,7 @@
+## [1.1.40](https://github.com/SMS2Email/SMS2Email/compare/v1.1.39...v1.1.40) (2026-11-08)
+
+
+### Bug Fixes
+
+* **deps:** update dependency androidx.lifecycle:lifecycle-runtime-ktx to v2.11.0 ([#93](https://github.com/SMS2Email/SMS2Email/issues/93)) ([86d16f5](https://github.com/SMS2Email/SMS2Email/commit/86d16f5cca649c2bfadcd46fdd163a72761cf8cb))
+
