@@ -2,7 +2,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
   alias(libs.plugins.android.application)
-  alias(libs.plugins.kotlin.android)
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.protobuf)
   id("com.mikepenz.aboutlibraries.plugin.android")
@@ -10,14 +9,24 @@ plugins {
 
 aboutLibraries { collect { configPath = file("../config") } }
 
+androidComponents {
+  beforeVariants { variant ->
+    if (variant.buildType == "release") {
+      variant.javaClass.methods
+          .firstOrNull { it.name == "setEnableUnitTest" }
+          ?.invoke(variant, true)
+    }
+  }
+}
+
 android {
   namespace = "io.github.sms2email.sms2email"
-  compileSdk { version = release(36) }
+  compileSdk { version = release(37) }
 
   defaultConfig {
     applicationId = "io.github.sms2email.sms2email"
     minSdk = 23
-    targetSdk = 36
+    targetSdk = 37
     versionCode = 49
     versionName = "1.1.36"
     base.archivesName = "SMS2Email-v" + versionName
@@ -40,6 +49,8 @@ android {
   }
   kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_11 } }
   buildFeatures { compose = true }
+
+  testOptions { unitTests { isIncludeAndroidResources = true } }
 
   packaging {
     resources {
