@@ -1,3 +1,10 @@
+## [1.1.37](https://github.com/SMS2Email/SMS2Email/compare/v1.1.36...v1.1.37) (2026-11-08)
+
+
+### Bug Fixes
+
+* upgrade to agp9 ([5db0a90](https://github.com/SMS2Email/SMS2Email/commit/5db0a90a261c7976892dbbc5809d19067782906a))
+
 ## [1.1.36](https://github.com/SMS2Email/SMS2Email/compare/v1.1.35...v1.1.36) (2026-09-18)
 
 
