@@ -4,16 +4,19 @@
     xmlns:tools="http://schemas.android.com/tools">
     <uses-feature
         android:name="android.hardware.telephony"
-        android:required="true" />
-    <!--Required to receive SMS messages-->
+        android:required="true"
+        tools:ignore="UnnecessaryRequiredFeature" />
+    <!-- Required to receive SMS messages. -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
-    <!--Required to post notifications-->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <!--Required to post SMTP requests-->
+    <!-- Required to identify the active SIM slots. -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Required to post notifications. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Required for email and Matrix requests. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:name=".CustomApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -24,12 +27,21 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.SMS2Email">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="matrix"
+                    android:path="/sso"
+                    android:scheme="sms2email" />
             </intent-filter>
         </activity>
         <activity
@@ -42,13 +54,24 @@
             android:exported="false"
             android:label="Licenses"
             android:theme="@style/Theme.SMS2Email" />
-    <receiver
-        android:name=".SmsReceiver"
-        android:exported="true"
-        android:permission="android.permission.BROADCAST_SMS">
-        <intent-filter android:priority="2147483647">
-            <action android:name="android.provider.Telephony.SMS_RECEIVED" />
-        </intent-filter>
-    </receiver>
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:ignore="MissingClass"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+        <receiver
+            android:name=".SmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="2147483647">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

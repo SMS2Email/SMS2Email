@@ -1,0 +1,56 @@
+---
+name: general
+description: "The attitude towards solving the problem"
+---
+
+- Writing:
+  - Do not rephrase.
+  - Do not write like a poem.
+  - Decorating code / comments using `—` `*` etc. is prohibited.
+  - Do not overreact.
+  - Do not use strong words like "must" "definitely" "completely", etc.
+  - Do not waste your context length by adding too many adjectives.
+- Attitude:
+  - Do not make problem "dichotomy" / "binary opposition", do not be too determined, understand the complexity of the reality as it is and be scientific.
+  - Do not always try to completely solve the problem. The problem might be unable to fixed because
+    - The underlying math documentation is wrong. Try finding the error in the math documentation and report it to the user.
+    - The package function is not implemented correctly. In this case it should be fixed there, not here.
+    - Do not be too concerned about failing tests.
+    - The user is using NixOS, which is not very common. In this case the NixOS configuration needs to be fixed or flake.nix should be added.
+- Think as if, initially there was no code, then you added the entire code. You are not only responsible for your own changes, but minimizing the entire code, and make it consistent looking.
+- Avoid overreaction: Do not overreact after you have got "surprised" / found a bug, just fix it, adding many lines of comment and useless test cases just because you are "surprised" is not acceptable. However, you still should react normally (for example: 1 line of code). As written in the last rule, adding too much for a specific issue will break the consistency of the code.
+- Tests:
+  - Do not add useless tests because you have "found" something, you are "surprised", or user said something "new".
+  - Tests should be canonical and simple, and tests should not be added to ban / force something.
+  - Do not use mocks, test with real data, test like a real user would use it.
+- Dependencies:
+  - Dependencies that is very popular should be added without thought if needed.
+  - Use external packages as much as possible to reduce the complexity of the code and avoid reimplementation. For example even for a simple task of mimicking `User-Agent`, use https://pypi.org/project/fake-useragent/.
+  - Dependencies may be added regardless of the popularity of the package.
+  - Dependencies which is too "optionated" is not preferable.
+  - Go to the "latest" "Reddit" solution (I'm not saying you should visit Reddit actually, but I am saying you should pick ones that should be recommended by Reddit users), and avoid using standard libraries blindly. For example choose attrs instead of default NamedTuple.
+  - Dependencies which is "AI slop" is not preferable, they typically are very new and have little popularity, readme has too much information and too well written, use a lot of bolds.
+  - Dependencies which new releases are not created within 9 months is not preferable, unless the package has no good replacement.
+  - When you found a bug on **my** package, try to locate it (search efficiently) / otherwise clone in `~/ghq/github.com/` and make changes there without committing. Make sure you are on the main branch on that repo. Try to continue working with some hacks if the language supports it (for example in Python, do the exact same changes in the exact same file in virtual environment).
+- Complexity:
+  - Skip features, options and flexibility nobody asked for, and name them in one line. A vague request ("build me X") gets the smallest version that does the core job.
+  - Avoid to increase the trivial maintenance cost as much as possible. For example, you should not write that the package supports Python 3.YY, because you have to update it later.
+  - Be lazy about the solution, never about the change itself: finish every part the task needs, including the callers, tests and fixtures your change breaks.
+  - The shortest working diff wins, once you know everything it must touch. A one-liner that needs decoding is not short.
+  - Between options of equal size, take the one that is correct on edge cases.
+  - Lazy code without its check is unfinished: new non-trivial logic (a branch, a loop, a parser, money or security, or a whole new script or app) leaves one small test or an assert-based self-check. Trivial changes need none.
+- Git:
+  - Do not commit without explicit approval.
+  - Use conventional commit messages like `ci(<scope>): <subject>`, especially there is a tendency of forgetting `ci` and `perf`, make sure to correctly choose the prefix.
+  - Do not stage files without explicit approval, the user is using this feature to review the diff you made.
+  - Clone repository with `ghq get <repo>`. The repository should be cloned to `~/ghq/github.com/<user-or-org>/<repo>`.
+  - My repositories are generally in `~/ghq/github.com/`, sometimes directly under `~`.
+- Searching:
+  - Recursively searching under `~`, `/nix/store` is prohibited because it is too slow, also `~/ghq/github.com` is strongly discouraged.
+  - When it is not needed and especially it is not project-level search but wider-level search (such as `~/ghq/github.com`), avoid searching within `.venv`, `node_modules`, etc, to maximize the speed of searching.
+- Avoid object-oriented probramming using classes, abstract classes, interfaces, instead use functions, types, as long as the language supports it.
+- Questions:
+  - Try to clarify everything as early as possible using `ask_user`, avoid asking later because I do not want to stare the monitor.
+  - Consider a bit before asking questions.
+  - Set timeout for `ask_user` to 30s. If reached to timeout, it will say "Cancelled", if so reconsider and pick the best.
+  - The `ask_user` is not intended for "confirmation for doing something heavy", you are meant to work autonomously as much as possible.
