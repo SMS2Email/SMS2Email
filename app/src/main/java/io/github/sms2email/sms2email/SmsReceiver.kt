@@ -22,8 +22,8 @@ class SmsReceiver : BroadcastReceiver() {
     CoroutineScope(Dispatchers.IO).launch {
       try {
         sendSms(context.applicationContext, event)
-      } catch (throwable: Throwable) {
-        notifyOutputFailure(context, "SMS forwarding", throwable)
+      } catch (_: Throwable) {
+        notifySmsForwarding(context, event, 0, 0)
       } finally {
         pendingResult.finish()
       }

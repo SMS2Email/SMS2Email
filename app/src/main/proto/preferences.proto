@@ -11,8 +11,6 @@ enum SmtpEncryptionMode {
 }
 
 message Preferences {
-  bool inputs_selected = 1;
-  repeated InputPreference inputs = 2;
   repeated EmailPreference emails = 3;
   repeated MatrixPreference matrices = 4;
 }
@@ -27,24 +25,24 @@ message InputPreference {
 
 message EmailPreference {
   string id = 1;
-  string label = 2;
   bool enabled = 3;
   string email_to = 4;
   string smtp_host = 5;
   int32 smtp_port = 6;
   string smtp_user = 7;
-  string smtp_token = 8;
+  string smtp_password = 8;
   string from_email = 9;
   SmtpEncryptionMode encryption_mode = 10;
+  repeated InputPreference inputs = 11;
 }
 
 message MatrixPreference {
   string id = 1;
-  string label = 2;
   bool enabled = 3;
   string homeserver = 4;
   string user = 5;
   string access_token = 6;
   string room_id = 7;
   string device_id = 8;
+  repeated InputPreference inputs = 9;
 }

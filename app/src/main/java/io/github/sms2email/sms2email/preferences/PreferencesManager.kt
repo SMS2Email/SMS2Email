@@ -40,8 +40,6 @@ object PreferencesManager {
   fun configFlow(context: Context): Flow<AppConfig> =
       context.preferencesDataStore.data.map { prefs ->
         AppConfig(
-            inputsSelected = prefs.inputsSelected,
-            inputs = prefs.inputsList.map { it.toModel() },
             emails = prefs.emailsList.map { it.toModel() },
             matrix = prefs.matricesList.map { it.toModel() },
         )
@@ -52,29 +50,29 @@ object PreferencesManager {
   suspend fun syncInputs(context: Context, available: List<AvailableSim>) {
     if (available.isEmpty()) return
     update(context) { prefs ->
-      val existing = prefs.inputsList.associateBy { it.slotIndex }
-      val inputs =
-          available.map { sim ->
-            val old = existing[sim.slotIndex]
-            InputProto.newBuilder()
-                .setId(old?.id ?: "slot-${sim.slotIndex}")
-                .setSlotIndex(sim.slotIndex)
-                .setSubscriptionId(sim.subscriptionId)
-                .setLabel(sim.label)
-                .setEnabled(old?.enabled ?: true)
+      val emails =
+          prefs.emailsList.map { email ->
+            email
+                .toBuilder()
+                .clearInputs()
+                .addAllInputs(email.inputsList.syncWith(available))
                 .build()
           }
-      prefs.toBuilder().setInputsSelected(true).clearInputs().addAllInputs(inputs).build()
-    }
-  }
-
-  suspend fun updateInput(context: Context, input: SimInput) {
-    update(context) { prefs ->
-      val inputs =
-          prefs.inputsList.map { old ->
-            if (old.id == input.id || old.slotIndex == input.slotIndex) input.toProto() else old
+      val matrices =
+          prefs.matricesList.map { matrix ->
+            matrix
+                .toBuilder()
+                .clearInputs()
+                .addAllInputs(matrix.inputsList.syncWith(available))
+                .build()
           }
-      prefs.toBuilder().setInputsSelected(true).clearInputs().addAllInputs(inputs).build()
+      prefs
+          .toBuilder()
+          .clearEmails()
+          .addAllEmails(emails)
+          .clearMatrices()
+          .addAllMatrices(matrices)
+          .build()
     }
   }
 
@@ -135,6 +133,20 @@ object PreferencesManager {
     context.preferencesDataStore.updateData(transform)
   }
 
+  private fun List<InputProto>.syncWith(available: List<AvailableSim>): List<InputProto> {
+    val existing = associateBy { it.slotIndex }
+    return available.map { sim ->
+      val old = existing[sim.slotIndex]
+      InputProto.newBuilder()
+          .setId(old?.id ?: "slot-${sim.slotIndex}")
+          .setSlotIndex(sim.slotIndex)
+          .setSubscriptionId(sim.subscriptionId)
+          .setLabel(sim.label)
+          .setEnabled(old?.enabled ?: true)
+          .build()
+    }
+  }
+
   private fun InputProto.toModel() =
       SimInput(
           id = id,
@@ -156,53 +168,53 @@ object PreferencesManager {
   private fun EmailProto.toModel() =
       EmailPreference(
           id = id,
-          label = label.ifBlank { "Email" },
           enabled = enabled,
           emailTo = emailTo,
           smtpHost = smtpHost.ifBlank { "smtp.gmail.com" },
           smtpPort = smtpPort.takeIf { it > 0 } ?: 465,
           smtpUser = smtpUser,
-          smtpToken = smtpToken,
+          smtpPassword = smtpPassword,
           fromEmail = fromEmail,
           encryptionMode = encryptionMode.validEncryption(),
+          inputs = inputsList.map { it.toModel() },
       )
 
   private fun EmailPreference.toProto() =
       EmailProto.newBuilder()
           .setId(id)
-          .setLabel(label)
           .setEnabled(enabled)
           .setEmailTo(emailTo)
           .setSmtpHost(smtpHost)
           .setSmtpPort(smtpPort)
           .setSmtpUser(smtpUser)
-          .setSmtpToken(smtpToken)
+          .setSmtpPassword(smtpPassword)
           .setFromEmail(fromEmail)
           .setEncryptionMode(encryptionMode)
+          .addAllInputs(inputs.map { it.toProto() })
           .build()
 
   private fun MatrixProto.toModel() =
       MatrixPreference(
           id = id,
-          label = label.ifBlank { "Matrix" },
           enabled = enabled,
           homeserver = homeserver.ifBlank { "https://matrix.org" },
           user = user,
           accessToken = accessToken,
           roomId = roomId,
           deviceId = deviceId,
+          inputs = inputsList.map { it.toModel() },
       )
 
   private fun MatrixPreference.toProto() =
       MatrixProto.newBuilder()
           .setId(id)
-          .setLabel(label)
           .setEnabled(enabled)
           .setHomeserver(homeserver)
           .setUser(user)
           .setAccessToken(accessToken)
           .setRoomId(roomId)
           .setDeviceId(deviceId)
+          .addAllInputs(inputs.map { it.toProto() })
           .build()
 
   private fun SmtpEncryptionMode.validEncryption() =

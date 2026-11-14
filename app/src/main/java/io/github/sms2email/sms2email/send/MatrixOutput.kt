@@ -17,7 +17,7 @@ import org.matrix.android.sdk.api.session.room.Room
 
 suspend fun sendMatrix(context: Context, event: SmsEvent, matrix: MatrixPreference) {
   withContext(Dispatchers.IO) {
-    val session = matrixSession(context, matrix)
+    val session = getMatrixSession(context, matrix)
     var room: Room? = null
     withTimeout(30_000) {
       while (room == null) {
@@ -32,10 +32,13 @@ suspend fun sendMatrix(context: Context, event: SmsEvent, matrix: MatrixPreferen
 private val sessionLock = Mutex()
 private val sessions = ConcurrentHashMap<String, Session>()
 
-private suspend fun matrixSession(context: Context, matrix: MatrixPreference): Session =
+fun rememberMatrixSession(matrix: MatrixPreference, session: Session) {
+  sessions[sessionKey(matrix)] = session
+}
+
+suspend fun getMatrixSession(context: Context, matrix: MatrixPreference): Session =
     sessionLock.withLock {
-      val key =
-          "${matrix.homeserver.trimEnd('/')}/${matrix.user}/${matrix.deviceId}/${matrix.accessToken}"
+      val key = sessionKey(matrix)
       sessions[key]?.let {
         return@withLock it
       }
@@ -61,3 +64,6 @@ private suspend fun matrixSession(context: Context, matrix: MatrixPreference): S
       sessions[key] = session
       session
     }
+
+private fun sessionKey(matrix: MatrixPreference): String =
+    "${matrix.homeserver.trimEnd('/')}/${matrix.user}/${matrix.deviceId}/${matrix.accessToken}"

@@ -2,9 +2,9 @@ package io.github.sms2email.sms2email.preferences
 
 import io.github.sms2email.sms2email.SmtpEncryptionMode
 
-fun newEmailPreference() = EmailPreference(newId(), "Email", true)
+fun newEmailPreference() = EmailPreference(newId(), true)
 
-fun newMatrixPreference() = MatrixPreference(newId(), "Matrix", true)
+fun newMatrixPreference() = MatrixPreference(newId(), true)
 
 private fun newId() = java.util.UUID.randomUUID().toString()
 
@@ -18,21 +18,21 @@ data class SimInput(
 
 data class EmailPreference(
     val id: String,
-    val label: String,
     val enabled: Boolean,
     val emailTo: String = "",
     val smtpHost: String = "smtp.gmail.com",
     val smtpPort: Int = 465,
     val smtpUser: String = "",
-    val smtpToken: String = "",
+    val smtpPassword: String = "",
     val fromEmail: String = "",
     val encryptionMode: SmtpEncryptionMode = SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS,
+    val inputs: List<SimInput> = emptyList(),
 ) {
   fun isConfigured() =
       smtpHost.isNotBlank() &&
           smtpPort > 0 &&
           smtpUser.isNotBlank() &&
-          smtpToken.isNotBlank() &&
+          smtpPassword.isNotBlank() &&
           fromEmail.isNotBlank() &&
           emailTo.isNotBlank()
 }
@@ -44,13 +44,13 @@ data class MatrixRoomOption(
 
 data class MatrixPreference(
     val id: String,
-    val label: String,
     val enabled: Boolean,
     val homeserver: String = "https://matrix.org",
     val user: String = "",
     val accessToken: String = "",
     val roomId: String = "",
     val deviceId: String = "",
+    val inputs: List<SimInput> = emptyList(),
 ) {
   fun isConfigured() =
       homeserver.startsWith("https://") &&
@@ -61,8 +61,6 @@ data class MatrixPreference(
 }
 
 data class AppConfig(
-    val inputsSelected: Boolean = false,
-    val inputs: List<SimInput> = emptyList(),
     val emails: List<EmailPreference> = emptyList(),
     val matrix: List<MatrixPreference> = emptyList(),
 )

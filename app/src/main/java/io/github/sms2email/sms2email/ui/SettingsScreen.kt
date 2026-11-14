@@ -2,24 +2,34 @@ package io.github.sms2email.sms2email.ui
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -39,6 +49,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -58,6 +69,8 @@ import io.github.sms2email.sms2email.send.SmsEvent
 import io.github.sms2email.sms2email.send.sendSms
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private val settingsSpacing = 12.dp
 
 @Composable
 fun SettingsScreen(
@@ -81,21 +94,36 @@ fun SettingsScreen(
         if (isPhonePermissionGranted) activeSimCards(context) else emptyList()
       }
 
-  LaunchedEffect(availableSims) { PreferencesManager.syncInputs(context, availableSims) }
+  LaunchedEffect(
+      availableSims,
+      config.emails.map { it.id },
+      config.matrix.map { it.id },
+  ) {
+    PreferencesManager.syncInputs(context, availableSims)
+  }
 
   Column(
       modifier = modifier.systemBarsPadding().padding(16.dp).verticalScroll(rememberScrollState()),
+      verticalArrangement = Arrangement.spacedBy(settingsSpacing),
   ) {
     Text(
         text = "SMS2Email",
         style = MaterialTheme.typography.headlineSmall,
-        modifier = Modifier.padding(bottom = 16.dp),
     )
-    Text(
-        text = "Forward SMS from selected SIMs to one or more destinations.",
-        style = MaterialTheme.typography.bodyLarge,
-        modifier = Modifier.padding(bottom = 16.dp),
-    )
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = MaterialTheme.shapes.medium,
+    ) {
+      Text(
+          text =
+              "SMS2Email automatically forwards received SMS to configured outputs, even if the app is closed.",
+          style = MaterialTheme.typography.bodyLarge,
+          modifier = Modifier.padding(12.dp),
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
 
     PermissionCard(
         title = "SMS permission",
@@ -106,6 +134,7 @@ fun SettingsScreen(
     PermissionCard(
         title = "SIM identification permission",
         granted = isPhonePermissionGranted,
+        required = false,
         action = "Grant phone permission",
         description = "Only used to identify active SIM slots; phone numbers are not read.",
         onRequest = onRequestPhonePermission,
@@ -113,22 +142,16 @@ fun SettingsScreen(
     PermissionCard(
         title = "Notifications",
         granted = isNotificationPermissionGranted,
+        required = false,
         action = "Grant notification permission",
         description = "Used to report delivery success and failure.",
         onRequest = onRequestNotificationPermission,
     )
 
-    SectionTitle("SMS inputs")
-    SimInputsCard(
-        context = context,
-        config = config,
-        availableSims = availableSims,
-        onUpdate = { input -> scope.launch { PreferencesManager.updateInput(context, input) } },
-    )
-
-    SectionTitle("Email senders")
     EmailCards(
+        context = context,
         emails = config.emails,
+        availableSims = availableSims,
         onUpdate = { id, update ->
           scope.launch { PreferencesManager.updateEmail(context, id, update) }
         },
@@ -136,9 +159,9 @@ fun SettingsScreen(
         onRemove = { id -> scope.launch { PreferencesManager.removeEmail(context, id) } },
     )
 
-    SectionTitle("Matrix senders")
     MatrixCards(
         matrix = config.matrix,
+        availableSims = availableSims,
         rooms = matrixRooms,
         loadingMatrix = loadingMatrix,
         onUpdate = { id, update ->
@@ -150,7 +173,6 @@ fun SettingsScreen(
         onRemove = { id -> scope.launch { PreferencesManager.removeMatrix(context, id) } },
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
     Button(
         onClick = {
           scope.launch {
@@ -177,7 +199,7 @@ fun SettingsScreen(
         color = MaterialTheme.colorScheme.onSurface,
         textDecoration = TextDecoration.Underline,
         modifier =
-            Modifier.padding(top = 20.dp, bottom = 16.dp).clickable {
+            Modifier.clickable {
               context.startActivity(Intent(context, AboutActivity::class.java))
             },
     )
@@ -188,22 +210,31 @@ fun SettingsScreen(
 private fun PermissionCard(
     title: String,
     granted: Boolean,
+    required: Boolean = true,
     action: String,
     onRequest: () -> Unit,
     description: String? = null,
 ) {
   Card(
-      modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+      modifier = Modifier.fillMaxWidth(),
       colors =
           CardDefaults.cardColors(
               containerColor =
-                  if (granted) MaterialTheme.colorScheme.primaryContainer
-                  else MaterialTheme.colorScheme.errorContainer,
+                  when {
+                    granted -> MaterialTheme.colorScheme.primaryContainer
+                    required -> MaterialTheme.colorScheme.errorContainer
+                    else -> MaterialTheme.colorScheme.surfaceVariant
+                  },
           ),
   ) {
     Column(modifier = Modifier.padding(12.dp)) {
       Text(
-          text = if (granted) "✓ $title" else "✗ $title",
+          text =
+              when {
+                granted -> "✓ $title"
+                required -> "✗ $title"
+                else -> "$title (optional)"
+              },
           style = MaterialTheme.typography.titleSmall)
       if (!granted) {
         description?.let {
@@ -221,83 +252,61 @@ private fun PermissionCard(
 }
 
 @Composable
-private fun SectionTitle(title: String) {
-  Text(
-      text = title,
-      style = MaterialTheme.typography.titleLarge,
-      modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
-  )
-}
-
-@Composable
-private fun SimInputsCard(
-    context: Context,
-    config: AppConfig,
+private fun OutputSimFields(
+    inputs: List<SimInput>,
     availableSims: List<AvailableSim>,
-    onUpdate: (SimInput) -> Unit,
+    onUpdate: (List<SimInput>) -> Unit,
 ) {
-  Card(modifier = Modifier.fillMaxWidth()) {
-    Column(modifier = Modifier.padding(12.dp)) {
-      Text(
-          text =
-              if (!config.inputsSelected) {
-                "All SIMs are accepted until individual SIMs are configured."
-              } else {
-                "Only enabled SIMs below trigger forwarding."
-              },
-          style = MaterialTheme.typography.bodyMedium,
-          modifier = Modifier.padding(bottom = 8.dp),
-      )
-      when {
-        !context.isSimPermissionAvailable() ->
-            Text(
-                "Grant SIM identification permission to choose individual SIMs.",
-                style = MaterialTheme.typography.bodySmall)
-        config.inputs.isEmpty() && availableSims.isEmpty() ->
-            Text("No active SIMs found.", style = MaterialTheme.typography.bodySmall)
-        config.inputs.isEmpty() ->
-            Text("Loading active SIMs...", style = MaterialTheme.typography.bodySmall)
-        else ->
-            config.inputs
-                .sortedBy { it.slotIndex }
-                .forEachIndexed { index, input ->
-                  if (index > 0) HorizontalDivider()
-                  Row(
-                      modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                      verticalAlignment = Alignment.CenterVertically,
-                  ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                      Text(input.label, style = MaterialTheme.typography.bodyLarge)
-                      Text(
-                          "SIM slot ${input.slotIndex + 1}",
-                          style = MaterialTheme.typography.bodySmall)
-                    }
-                    Switch(
-                        checked = input.enabled,
-                        onCheckedChange = { onUpdate(input.copy(enabled = it)) })
-                  }
-                }
+  if (availableSims.isEmpty()) return
+
+  availableSims.forEachIndexed { index, sim ->
+    val current = inputs.firstOrNull { it.slotIndex == sim.slotIndex }
+    if (index > 0) HorizontalDivider()
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Column(modifier = Modifier.weight(1f)) {
+        Text(sim.label, style = MaterialTheme.typography.bodyLarge)
+        Text("SIM slot ${sim.slotIndex + 1}", style = MaterialTheme.typography.bodySmall)
       }
+      Switch(
+          checked = current?.enabled ?: true,
+          onCheckedChange = { enabled ->
+            onUpdate(
+                availableSims.map { available ->
+                  val old = inputs.firstOrNull { it.slotIndex == available.slotIndex }
+                  SimInput(
+                      id = old?.id ?: "slot-${available.slotIndex}",
+                      slotIndex = available.slotIndex,
+                      subscriptionId = available.subscriptionId,
+                      label = available.label,
+                      enabled =
+                          if (available.slotIndex == sim.slotIndex) enabled
+                          else old?.enabled ?: true,
+                  )
+                },
+            )
+          },
+      )
     }
   }
 }
 
 @Composable
 private fun EmailCards(
+    context: Context,
     emails: List<EmailPreference>,
+    availableSims: List<AvailableSim>,
     onUpdate: (String, (EmailPreference) -> EmailPreference) -> Unit,
     onAdd: () -> Unit,
     onRemove: (String) -> Unit,
 ) {
-  emails.forEach { email ->
+  emails.forEachIndexed { index, email ->
     key(email.id) {
-      val label =
-          rememberPreferenceTextState(email.label) { value ->
-            onUpdate(email.id) { it.copy(label = value) }
-          }
       SenderCard(
           id = email.id,
-          label = label.value.ifBlank { "Email" },
+          label = "SMTP ${index + 1}",
           enabled = email.enabled,
           incomplete = !email.isConfigured(),
           onEnabled = { enabled ->
@@ -305,8 +314,7 @@ private fun EmailCards(
           },
           onRemove = { onRemove(email.id) },
       ) {
-        TextField(label, "Name") { label.value = it }
-        EmailFields(email, onUpdate)
+        EmailFields(context, email, availableSims, onUpdate)
       }
     }
   }
@@ -316,6 +324,7 @@ private fun EmailCards(
 @Composable
 private fun MatrixCards(
     matrix: List<MatrixPreference>,
+    availableSims: List<AvailableSim>,
     rooms: Map<String, List<MatrixRoomOption>>,
     loadingMatrix: Set<String>,
     onUpdate: (String, (MatrixPreference) -> MatrixPreference) -> Unit,
@@ -324,15 +333,11 @@ private fun MatrixCards(
     onAdd: () -> Unit,
     onRemove: (String) -> Unit,
 ) {
-  matrix.forEach { item ->
+  matrix.forEachIndexed { index, item ->
     key(item.id) {
-      val label =
-          rememberPreferenceTextState(item.label) { value ->
-            onUpdate(item.id) { it.copy(label = value) }
-          }
       SenderCard(
           id = item.id,
-          label = label.value.ifBlank { "Matrix" },
+          label = "Matrix ${index + 1}",
           enabled = item.enabled,
           incomplete = !item.isConfigured(),
           onEnabled = { enabled ->
@@ -340,9 +345,9 @@ private fun MatrixCards(
           },
           onRemove = { onRemove(item.id) },
       ) {
-        TextField(label, "Name") { label.value = it }
         MatrixFields(
             matrix = item,
+            availableSims = availableSims,
             rooms = rooms[item.id].orEmpty(),
             loading = item.id in loadingMatrix,
             onUpdate = onUpdate,
@@ -366,29 +371,35 @@ private fun SenderCard(
     content: @Composable () -> Unit,
 ) {
   var expanded by rememberSaveable(id) { mutableStateOf(false) }
-  Card(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+  Card(modifier = Modifier.fillMaxWidth()) {
     Column(modifier = Modifier.padding(12.dp)) {
       Row(verticalAlignment = Alignment.CenterVertically) {
         Switch(checked = enabled, onCheckedChange = onEnabled)
         Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
           Text(label, style = MaterialTheme.typography.titleMedium)
-          if (enabled && incomplete) {
+          if (incomplete) {
             Text(
                 "Incomplete configuration",
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall)
           }
         }
-        OutlinedButton(onClick = { expanded = !expanded }) {
-          Text(if (expanded) "Hide" else "Edit")
+        IconButton(onClick = onRemove) {
+          Icon(
+              Icons.Default.Delete,
+              contentDescription = "Discard $label",
+              tint = MaterialTheme.colorScheme.error,
+          )
+        }
+        IconButton(onClick = { expanded = !expanded }) {
+          Icon(
+              imageVector = if (expanded) Icons.Default.Remove else Icons.Default.Add,
+              contentDescription = if (expanded) "Collapse $label" else "Expand $label",
+          )
         }
       }
       if (expanded) {
-        Spacer(modifier = Modifier.height(8.dp))
-        content()
-        OutlinedButton(onClick = onRemove, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-          Text("Remove sender")
-        }
+        Column(verticalArrangement = Arrangement.spacedBy(settingsSpacing)) { content() }
       }
     }
   }
@@ -396,25 +407,31 @@ private fun SenderCard(
 
 @Composable
 private fun AddButton(label: String, onClick: () -> Unit) {
-  OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
-    Text(label)
-  }
+  OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(label) }
 }
 
 @Composable
-private fun TextField(state: MutableState<String>, label: String, onValueChange: (String) -> Unit) {
+private fun TextField(
+    state: MutableState<String>,
+    label: String,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(),
+    onValueChange: (String) -> Unit,
+) {
   OutlinedTextField(
       value = state.value,
       onValueChange = onValueChange,
       label = { Text(label) },
       singleLine = true,
-      modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+      keyboardOptions = keyboardOptions,
+      modifier = Modifier.fillMaxWidth(),
   )
 }
 
 @Composable
 private fun EmailFields(
+    context: Context,
     email: EmailPreference,
+    availableSims: List<AvailableSim>,
     onUpdate: (String, (EmailPreference) -> EmailPreference) -> Unit,
 ) {
   val recipient =
@@ -427,55 +444,165 @@ private fun EmailFields(
       }
   val port =
       rememberPreferenceTextState(email.smtpPort.toString()) { value ->
-        value
-            .toIntOrNull()
-            ?.takeIf { it > 0 }
-            ?.let { onUpdate(email.id) { current -> current.copy(smtpPort = it) } }
+        value.toIntOrNull()?.let { onUpdate(email.id) { current -> current.copy(smtpPort = it) } }
       }
   val user =
       rememberPreferenceTextState(email.smtpUser) { value ->
         onUpdate(email.id) { it.copy(smtpUser = value) }
       }
-  val token =
-      rememberPreferenceTextState(email.smtpToken) { value ->
-        onUpdate(email.id) { it.copy(smtpToken = value) }
+  val password =
+      rememberPreferenceTextState(email.smtpPassword) { value ->
+        onUpdate(email.id) { it.copy(smtpPassword = value) }
       }
   val from =
       rememberPreferenceTextState(email.fromEmail) { value ->
         onUpdate(email.id) { it.copy(fromEmail = value) }
       }
 
-  TextField(recipient, "Recipient email") { recipient.value = it }
-  TextField(host, "SMTP host") { host.value = it }
-  TextField(port, "SMTP port") { port.value = it }
-  SelectionMenu(
-      label = "Encryption",
-      value = email.encryptionMode.label(),
-      options =
-          listOf(
+  val portNumber = port.value.toIntOrNull()
+  val warningText =
+      when {
+        email.encryptionMode == SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_NONE ->
+            "Warning: No encryption selected. This may expose credentials and email content."
+        portNumber == 465 &&
+            email.encryptionMode != SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS ->
+            "Warning: Port 465 is typically used with SMTPS (SSL/TLS)."
+        portNumber != null &&
+            portNumber != 465 &&
+            email.encryptionMode == SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS ->
+            "Warning: SMTPS (SSL/TLS) typically uses port 465."
+        else -> null
+      }
+
+  OutputSimFields(
+      inputs = email.inputs,
+      availableSims = availableSims,
+      onUpdate = { inputs -> onUpdate(email.id) { it.copy(inputs = inputs) } },
+  )
+  TextField(host, "SMTP Host") { host.value = it }
+  TextField(
+      port,
+      "SMTP Port",
+      onValueChange = { port.value = it },
+      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+  )
+  EncryptionMenu(
+      value = email.encryptionMode,
+      onSelect = { mode -> onUpdate(email.id) { it.copy(encryptionMode = mode) } },
+  )
+  if (warningText != null) {
+    Text(
+        text = warningText,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+    )
+  }
+  TextField(user, "SMTP Username") { user.value = it }
+  if (email.smtpHost.contains("gmail", ignoreCase = true) &&
+      user.value.isNotBlank() &&
+      user.value != from.value) {
+    Text(
+        text =
+            "Warning: For Gmail, the SMTP username should be your full email address (same as From Email Address).",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+    )
+  }
+  OutlinedTextField(
+      value = password.value,
+      onValueChange = { password.value = it },
+      label = { Text("SMTP Password") },
+      singleLine = true,
+      visualTransformation = PasswordVisualTransformation(),
+      modifier = Modifier.fillMaxWidth(),
+  )
+  if (email.smtpHost.contains("gmail", ignoreCase = true) &&
+      password.value.replace(" ", "").length != 16) {
+    Text(
+        text =
+            "Your 16-digit Google \"App password\" needs to be entered, not your Google Account password.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+    )
+    Text(
+        text = "Generate App Password",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.primary,
+        textDecoration = TextDecoration.Underline,
+        modifier =
+            Modifier.clickable {
+              context.startActivity(
+                  Intent(
+                      Intent.ACTION_VIEW, Uri.parse("https://myaccount.google.com/apppasswords")))
+            },
+    )
+  }
+  TextField(
+      from,
+      "From Email Address",
+      onValueChange = { from.value = it },
+      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+  )
+  TextField(
+      recipient,
+      "To Email Address",
+      onValueChange = { recipient.value = it },
+      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EncryptionMenu(
+    value: SmtpEncryptionMode,
+    onSelect: (SmtpEncryptionMode) -> Unit,
+) {
+  var expanded by rememberSaveable { mutableStateOf(false) }
+  ExposedDropdownMenuBox(
+      expanded = expanded,
+      onExpandedChange = { expanded = !expanded },
+      modifier = Modifier.fillMaxWidth(),
+  ) {
+    OutlinedTextField(
+        value = value.label(),
+        onValueChange = {},
+        readOnly = true,
+        singleLine = true,
+        label = { Text("Encryption") },
+        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+        modifier =
+            Modifier.menuAnchor(
+                    type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                    enabled = true,
+                )
+                .fillMaxWidth(),
+    )
+    ExposedDropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false },
+    ) {
+      listOf(
               SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_STARTTLS,
               SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS,
               SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_NONE,
-          ),
-      optionLabel = { it.label() },
-      onSelect = { mode -> onUpdate(email.id) { it.copy(encryptionMode = mode) } },
-  )
-  Spacer(modifier = Modifier.height(8.dp))
-  TextField(user, "SMTP username") { user.value = it }
-  OutlinedTextField(
-      value = token.value,
-      onValueChange = { token.value = it },
-      label = { Text("SMTP OAuth token") },
-      singleLine = true,
-      visualTransformation = PasswordVisualTransformation(),
-      modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-  )
-  TextField(from, "From email") { from.value = it }
+          )
+          .forEach { mode ->
+            DropdownMenuItem(
+                text = { Text(mode.label()) },
+                onClick = {
+                  expanded = false
+                  onSelect(mode)
+                },
+            )
+          }
+    }
+  }
 }
 
 @Composable
 private fun MatrixFields(
     matrix: MatrixPreference,
+    availableSims: List<AvailableSim>,
     rooms: List<MatrixRoomOption>,
     loading: Boolean,
     onUpdate: (String, (MatrixPreference) -> MatrixPreference) -> Unit,
@@ -486,19 +613,20 @@ private fun MatrixFields(
       rememberPreferenceTextState(matrix.homeserver) { value ->
         onUpdate(matrix.id) { it.copy(homeserver = value) }
       }
+  OutputSimFields(
+      inputs = matrix.inputs,
+      availableSims = availableSims,
+      onUpdate = { inputs -> onUpdate(matrix.id) { it.copy(inputs = inputs) } },
+  )
   TextField(homeserver, "Homeserver HTTPS URL") { homeserver.value = it }
   if (loading) {
-    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-    Text(
-        "Loading joined rooms...",
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 8.dp),
-    )
+    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+    Text("Loading joined rooms...", style = MaterialTheme.typography.bodySmall)
   }
   Button(
       enabled = !loading,
       onClick = onConnect,
-      modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+      modifier = Modifier.fillMaxWidth(),
   ) {
     Text(
         if (loading) "Loading rooms..."
@@ -508,7 +636,6 @@ private fun MatrixFields(
     Text(
         text = "Connected as ${matrix.user}",
         style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.padding(bottom = 8.dp),
     )
   }
   if (rooms.isNotEmpty()) {
@@ -583,9 +710,3 @@ private fun SmtpEncryptionMode.label(): String =
       SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_NONE -> "None"
       else -> "STARTTLS"
     }
-
-private fun Context.isSimPermissionAvailable(): Boolean =
-    androidx.core.content.ContextCompat.checkSelfPermission(
-        this,
-        android.Manifest.permission.READ_PHONE_STATE,
-    ) == android.content.pm.PackageManager.PERMISSION_GRANTED

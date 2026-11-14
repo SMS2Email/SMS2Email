@@ -20,9 +20,6 @@ suspend fun sendEmail(event: SmsEvent, email: EmailPreference) =
             setProperty("mail.smtp.host", email.smtpHost)
             setProperty("mail.smtp.port", email.smtpPort.toString())
             setProperty("mail.smtp.auth", "true")
-            setProperty("mail.smtp.auth.mechanisms", "XOAUTH2")
-            setProperty("mail.smtp.auth.login.disable", "true")
-            setProperty("mail.smtp.auth.plain.disable", "true")
             setProperty("mail.smtp.connectiontimeout", "15000")
             setProperty("mail.smtp.timeout", "15000")
             setProperty("mail.smtp.writetimeout", "15000")
@@ -51,7 +48,7 @@ suspend fun sendEmail(event: SmsEvent, email: EmailPreference) =
               properties,
               object : Authenticator() {
                 override fun getPasswordAuthentication() =
-                    PasswordAuthentication(email.smtpUser, email.smtpToken)
+                    PasswordAuthentication(email.smtpUser, email.smtpPassword)
               },
           )
       val message: Message = MimeMessage(session)

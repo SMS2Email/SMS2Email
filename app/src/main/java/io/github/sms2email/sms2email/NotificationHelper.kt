@@ -23,31 +23,22 @@ fun createNotificationChannel(context: Context) {
   }
 }
 
-fun notifyOutputSuccess(
+fun notifySmsForwarding(
     context: Context,
-    outputLabel: String,
-    eventBody: String,
+    event: io.github.sms2email.sms2email.send.SmsEvent,
+    successfulOutputs: Int,
+    totalOutputs: Int,
 ) {
+  val succeeded = successfulOutputs > 0
   notify(
-      context = context,
-      id = notificationId(outputLabel, success = true),
-      title = "SMS sent with $outputLabel",
-      text = eventBody.take(120),
-      icon = android.R.drawable.ic_dialog_email,
-  )
-}
-
-fun notifyOutputFailure(
-    context: Context,
-    outputLabel: String,
-    throwable: Throwable,
-) {
-  notify(
-      context = context,
-      id = notificationId(outputLabel, success = false),
-      title = "Failed to send with $outputLabel",
-      text = throwable.message ?: throwable.javaClass.simpleName,
-      icon = android.R.drawable.ic_dialog_alert,
+      context,
+      notificationId(event.id),
+      if (succeeded) "SMS from ${event.sender} transferred ($successfulOutputs/$totalOutputs)"
+      else "SMS forwarding failed",
+      if (succeeded) event.body.take(120)
+      else if (totalOutputs == 0) "No configured output accepts this SMS."
+      else "$successfulOutputs of $totalOutputs configured output(s) succeeded.",
+      if (succeeded) android.R.drawable.ic_dialog_email else android.R.drawable.ic_dialog_alert,
   )
 }
 
@@ -73,5 +64,4 @@ private fun notify(
   }
 }
 
-private fun notificationId(label: String, success: Boolean): Int =
-    (label.hashCode() and 0x3fffffff) + if (success) 1 else 2
+private fun notificationId(eventId: String): Int = eventId.hashCode() and 0x3fffffff
