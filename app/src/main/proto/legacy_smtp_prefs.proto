@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+option java_package = "io.github.sms2email.sms2email";
+option java_multiple_files = true;
+option java_outer_classname = "LegacySmtpPrefsProto";
+
+enum LegacySmtpEncryptionMode {
+  LEGACY_SMTP_ENCRYPTION_MODE_STARTTLS = 0;
+  LEGACY_SMTP_ENCRYPTION_MODE_SMTPS = 1;
+  LEGACY_SMTP_ENCRYPTION_MODE_NONE = 2;
+}
+
+message LegacySmtpPreferences {
+  string smtp_host = 1;
+  int32 smtp_port = 2;
+  string smtp_user = 3;
+  string smtp_password = 4;
+  string from_email = 5;
+  string to_email = 6;
+  LegacySmtpEncryptionMode encryption_mode = 7;
+}
