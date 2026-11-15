@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/SMS2Email/SMS2Email/compare/v1.1.40...v1.2.0) (2026-11-15)
+
+
+### Features
+
+* support matrix ([#145](https://github.com/SMS2Email/SMS2Email/issues/145)) ([2dbc093](https://github.com/SMS2Email/SMS2Email/commit/2dbc093d60006457fa90b81d4980444aec3ac37e))
+
 ## [1.1.40](https://github.com/SMS2Email/SMS2Email/compare/v1.1.39...v1.1.40) (2026-11-08)
 
 
