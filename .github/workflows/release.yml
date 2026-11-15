@@ -92,6 +92,26 @@ jobs:
           KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
           KEYSTORE_KEY_ALIAS: key0
           KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+      - name: Build Signed Release APK (PR)
+        if: github.ref_name != 'main'
+        run: |
+          ./gradlew :app:assembleRelease \
+            -Pandroid.injected.signing.store.file="$KEYSTORE_FILE" \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_STORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEYSTORE_KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEYSTORE_KEY_PASSWORD"
+        env:
+          KEYSTORE_FILE: ${{ github.workspace }}/keystore.jks
+          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KEYSTORE_KEY_ALIAS: key0
+          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+      - name: Upload Signed Release APK (PR)
+        if: github.ref_name != 'main'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sms2email-release-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
       - name: Check if apk was generated
         run: |
           if ls app/build/outputs/apk/release/*.apk 1> /dev/null 2>&1; then
