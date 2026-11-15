@@ -3,6 +3,7 @@ package io.github.sms2email.sms2email.ui
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,9 +16,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -49,6 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
@@ -155,7 +157,6 @@ fun SettingsScreen(
         onUpdate = { id, update ->
           scope.launch { PreferencesManager.updateEmail(context, id, update) }
         },
-        onAdd = { scope.launch { PreferencesManager.addEmail(context, newEmailPreference()) } },
         onRemove = { id -> scope.launch { PreferencesManager.removeEmail(context, id) } },
     )
 
@@ -169,8 +170,16 @@ fun SettingsScreen(
         },
         onConnect = onConnectMatrix,
         onSelectRoom = onSelectMatrixRoom,
-        onAdd = { scope.launch { PreferencesManager.addMatrix(context, newMatrixPreference()) } },
         onRemove = { id -> scope.launch { PreferencesManager.removeMatrix(context, id) } },
+    )
+
+    AddOutputMenu(
+        onAddEmail = {
+          scope.launch { PreferencesManager.addEmail(context, newEmailPreference()) }
+        },
+        onAddMatrix = {
+          scope.launch { PreferencesManager.addMatrix(context, newMatrixPreference()) }
+        },
     )
 
     Button(
@@ -190,19 +199,21 @@ fun SettingsScreen(
         },
         modifier = Modifier.fillMaxWidth(),
     ) {
-      Text("Send test SMS")
+      Text("Test")
     }
 
-    Text(
-        text = "Licenses...",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurface,
-        textDecoration = TextDecoration.Underline,
-        modifier =
-            Modifier.clickable {
-              context.startActivity(Intent(context, AboutActivity::class.java))
-            },
-    )
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+      Text(
+          text = "Licenses...",
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurface,
+          textDecoration = TextDecoration.Underline,
+          modifier =
+              Modifier.clickable {
+                context.startActivity(Intent(context, AboutActivity::class.java))
+              },
+      )
+    }
   }
 }
 
@@ -299,7 +310,6 @@ private fun EmailCards(
     emails: List<EmailPreference>,
     availableSims: List<AvailableSim>,
     onUpdate: (String, (EmailPreference) -> EmailPreference) -> Unit,
-    onAdd: () -> Unit,
     onRemove: (String) -> Unit,
 ) {
   emails.forEachIndexed { index, email ->
@@ -318,7 +328,6 @@ private fun EmailCards(
       }
     }
   }
-  AddButton("Add email sender", onAdd)
 }
 
 @Composable
@@ -330,7 +339,6 @@ private fun MatrixCards(
     onUpdate: (String, (MatrixPreference) -> MatrixPreference) -> Unit,
     onConnect: (MatrixPreference) -> Unit,
     onSelectRoom: (String, String) -> Unit,
-    onAdd: () -> Unit,
     onRemove: (String) -> Unit,
 ) {
   matrix.forEachIndexed { index, item ->
@@ -357,7 +365,42 @@ private fun MatrixCards(
       }
     }
   }
-  AddButton("Add Matrix sender", onAdd)
+}
+
+@Composable
+private fun AddOutputMenu(
+    onAddEmail: () -> Unit,
+    onAddMatrix: () -> Unit,
+) {
+  var expanded by rememberSaveable { mutableStateOf(false) }
+  Box(modifier = Modifier.fillMaxWidth()) {
+    OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("Add...")
+        Text("⌄")
+      }
+    }
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false },
+        modifier = Modifier.fillMaxWidth(0.9f),
+    ) {
+      DropdownMenuItem(
+          text = { Text("Email sender") },
+          onClick = {
+            expanded = false
+            onAddEmail()
+          },
+      )
+      DropdownMenuItem(
+          text = { Text("Matrix sender") },
+          onClick = {
+            expanded = false
+            onAddMatrix()
+          },
+      )
+    }
+  }
 }
 
 @Composable
@@ -371,7 +414,7 @@ private fun SenderCard(
     content: @Composable () -> Unit,
 ) {
   var expanded by rememberSaveable(id) { mutableStateOf(false) }
-  Card(modifier = Modifier.fillMaxWidth()) {
+  Card(modifier = Modifier.fillMaxWidth().animateContentSize()) {
     Column(modifier = Modifier.padding(12.dp)) {
       Row(verticalAlignment = Alignment.CenterVertically) {
         Switch(checked = enabled, onCheckedChange = onEnabled)
@@ -393,8 +436,9 @@ private fun SenderCard(
         }
         IconButton(onClick = { expanded = !expanded }) {
           Icon(
-              imageVector = if (expanded) Icons.Default.Remove else Icons.Default.Add,
+              imageVector = if (expanded) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
               contentDescription = if (expanded) "Collapse $label" else "Expand $label",
+              modifier = Modifier.rotate(90f),
           )
         }
       }
@@ -403,11 +447,6 @@ private fun SenderCard(
       }
     }
   }
-}
-
-@Composable
-private fun AddButton(label: String, onClick: () -> Unit) {
-  OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(label) }
 }
 
 @Composable
@@ -652,6 +691,7 @@ private fun MatrixFields(
   }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun <T> SelectionMenu(
     label: String,
@@ -661,27 +701,39 @@ private fun <T> SelectionMenu(
     onSelect: (T) -> Unit,
 ) {
   var expanded by rememberSaveable { mutableStateOf(false) }
-  Box(modifier = Modifier.fillMaxWidth()) {
-    OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label)
-        Text(value)
-      }
-    }
-    DropdownMenu(
+  ExposedDropdownMenuBox(
+      expanded = expanded,
+      onExpandedChange = { expanded = !expanded },
+      modifier = Modifier.fillMaxWidth(),
+  ) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = {},
+        readOnly = true,
+        singleLine = true,
+        label = { Text(label) },
+        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+        modifier =
+            Modifier.menuAnchor(
+                    type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                    enabled = true,
+                )
+                .fillMaxWidth(),
+    )
+    ExposedDropdownMenu(
         expanded = expanded,
         onDismissRequest = { expanded = false },
-        modifier = Modifier.fillMaxWidth(0.9f)) {
-          options.forEach { option ->
-            DropdownMenuItem(
-                text = { Text(optionLabel(option)) },
-                onClick = {
-                  expanded = false
-                  onSelect(option)
-                },
-            )
-          }
-        }
+    ) {
+      options.forEach { option ->
+        DropdownMenuItem(
+            text = { Text(optionLabel(option)) },
+            onClick = {
+              expanded = false
+              onSelect(option)
+            },
+        )
+      }
+    }
   }
 }
 
