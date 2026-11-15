@@ -17,6 +17,33 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
+internal const val DEFAULT_EMAIL_ID = "default-smtp"
+internal const val DEFAULT_MATRIX_ID = "default-matrix"
+
+internal val initialPreferences =
+    Preferences.newBuilder()
+        .addEmails(
+            EmailProto.newBuilder()
+                .setId(DEFAULT_EMAIL_ID)
+                .setEnabled(true)
+                .setSmtpHost("smtp.gmail.com")
+                .setSmtpPort(465)
+                .setEncryptionMode(SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS)
+                .build())
+        .addMatrices(
+            MatrixProto.newBuilder()
+                .setId(DEFAULT_MATRIX_ID)
+                .setEnabled(true)
+                .setHomeserver("https://matrix.org")
+                .build())
+        .build()
+
+internal fun Preferences.isInitialPreferences() =
+    emailsCount == 1 &&
+        matricesCount == 1 &&
+        emailsList.single().id == DEFAULT_EMAIL_ID &&
+        matricesList.single().id == DEFAULT_MATRIX_ID
+
 private val Context.preferencesDataStore: DataStore<Preferences> by
     dataStore(
         fileName = "preferences.pb",
@@ -25,7 +52,7 @@ private val Context.preferencesDataStore: DataStore<Preferences> by
     )
 
 object PreferencesSerializer : Serializer<Preferences> {
-  override val defaultValue = Preferences.getDefaultInstance()
+  override val defaultValue = initialPreferences
 
   override suspend fun readFrom(input: InputStream): Preferences =
       try {

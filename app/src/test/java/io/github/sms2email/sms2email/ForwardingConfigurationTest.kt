@@ -2,6 +2,7 @@ package io.github.sms2email.sms2email
 
 import io.github.sms2email.sms2email.preferences.EmailPreference
 import io.github.sms2email.sms2email.preferences.MatrixPreference
+import io.github.sms2email.sms2email.preferences.PreferencesSerializer
 import io.github.sms2email.sms2email.preferences.SimInput
 import io.github.sms2email.sms2email.preferences.legacySmtpEmail
 import io.github.sms2email.sms2email.send.SmsEvent
@@ -12,6 +13,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ForwardingConfigurationTest {
+  @Test
+  fun freshInstallationStartsWithOneEmailAndOneMatrixOutput() {
+    val defaults = PreferencesSerializer.defaultValue
+
+    assertEquals(1, defaults.emailsCount)
+    assertEquals(1, defaults.matricesCount)
+    assertEquals("default-smtp", defaults.emailsList.single().id)
+    assertEquals("default-matrix", defaults.matricesList.single().id)
+  }
+
   @Test
   fun eachOutputCanSelectItsOwnInputs() {
     val emailInputs =

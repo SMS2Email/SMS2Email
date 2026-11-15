@@ -36,8 +36,9 @@ android {
 
   buildTypes {
     release {
-      isMinifyEnabled = true
-      isShrinkResources = true
+      // Matrix SDK 1.6.62's reflective Moshi adapters fail under R8.
+      isMinifyEnabled = false
+      isShrinkResources = false
       proguardFiles(
           getDefaultProguardFile("proguard-android-optimize.txt"),
           "proguard-rules.pro",
@@ -56,7 +57,7 @@ android {
     abi {
       isEnable = true
       reset()
-      include("arm64-v8a", "armeabi-v7a")
+      include("arm64-v8a")
       if (providers.gradleProperty("emulator").isPresent) include("x86_64")
       isUniversalApk = false
     }

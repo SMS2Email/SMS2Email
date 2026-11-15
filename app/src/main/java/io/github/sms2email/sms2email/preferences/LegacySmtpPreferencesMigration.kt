@@ -15,14 +15,18 @@ internal class LegacySmtpPreferencesMigration(
     get() = context.dataStoreFile("smtp_prefs.pb")
 
   override suspend fun shouldMigrate(currentData: Preferences): Boolean =
-      legacyFile.exists() && currentData.emailsCount == 0 && currentData.matricesCount == 0
+      legacyFile.exists() &&
+          (currentData.isInitialPreferences() ||
+              (currentData.emailsCount == 0 && currentData.matricesCount == 0))
 
   override suspend fun migrate(currentData: Preferences): Preferences {
     val legacy =
         runCatching { legacyFile.inputStream().use { LegacySmtpPreferences.parseFrom(it) } }
             .getOrNull() ?: return currentData
 
-    return currentData.toBuilder().addEmails(legacySmtpEmail(legacy)).build()
+    val migrationBase =
+        if (currentData.isInitialPreferences()) Preferences.getDefaultInstance() else currentData
+    return migrationBase.toBuilder().addEmails(legacySmtpEmail(legacy)).build()
   }
 
   override suspend fun cleanUp() {
