@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "skills": {
+    "general": {
+      "source": "34j/skills",
+      "sourceType": "github",
+      "skillPath": "general/SKILL.md",
+      "computedHash": "6ccbb4507523dd3a83ccd4a92ec9b21e2ef5584fa311c647b95b7f513104a182"
+    }
+  }
+}
