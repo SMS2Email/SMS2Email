@@ -7,22 +7,30 @@ import io.github.sms2email.sms2email.EmailPreference as EmailProto
 import io.github.sms2email.sms2email.LegacySmtpPreferences
 import io.github.sms2email.sms2email.Preferences
 import io.github.sms2email.sms2email.SmtpEncryptionMode
+import java.io.File
 
 internal class LegacySmtpPreferencesMigration(
     private val context: Context,
 ) : DataMigration<Preferences> {
-  private val legacyFile
-    get() = context.dataStoreFile("smtp_prefs.pb")
+  private var migratedFile: File? = null
+
+  private val legacyFile: File?
+    get() =
+        listOf(
+                context.dataStoreFile("smtp_prefs.pb"),
+                File(context.filesDir, "smtp_prefs.pb"),
+            )
+            .firstOrNull(File::exists)
 
   override suspend fun shouldMigrate(currentData: Preferences): Boolean =
-      legacyFile.exists() &&
+      legacyFile != null &&
           (currentData.isInitialPreferences() ||
               (currentData.emailsCount == 0 && currentData.matricesCount == 0))
 
   override suspend fun migrate(currentData: Preferences): Preferences {
-    val legacy =
-        runCatching { legacyFile.inputStream().use { LegacySmtpPreferences.parseFrom(it) } }
-            .getOrNull() ?: return currentData
+    val file = legacyFile ?: return currentData
+    val legacy = file.inputStream().use { LegacySmtpPreferences.parseFrom(it) }
+    migratedFile = file
 
     val migrationBase =
         if (currentData.isInitialPreferences()) Preferences.getDefaultInstance() else currentData
@@ -30,7 +38,8 @@ internal class LegacySmtpPreferencesMigration(
   }
 
   override suspend fun cleanUp() {
-    legacyFile.delete()
+    migratedFile?.delete()
+    migratedFile = null
   }
 }
 

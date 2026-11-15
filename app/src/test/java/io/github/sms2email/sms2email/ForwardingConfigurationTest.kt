@@ -1,12 +1,14 @@
 package io.github.sms2email.sms2email
 
 import io.github.sms2email.sms2email.preferences.EmailPreference
+import io.github.sms2email.sms2email.preferences.LegacyPreferencesMigration
 import io.github.sms2email.sms2email.preferences.MatrixPreference
 import io.github.sms2email.sms2email.preferences.PreferencesSerializer
 import io.github.sms2email.sms2email.preferences.SimInput
 import io.github.sms2email.sms2email.preferences.legacySmtpEmail
 import io.github.sms2email.sms2email.send.SmsEvent
 import io.github.sms2email.sms2email.send.acceptsInput
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -77,6 +79,46 @@ class ForwardingConfigurationTest {
         io.github.sms2email.sms2email.SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_STARTTLS,
         email.encryptionMode,
     )
+  }
+
+  @Test
+  fun previousPreferencesMigrateSharedInputsToEveryOutput() = runBlocking {
+    val oldPreferences =
+        LegacyPreferences.newBuilder()
+            .setInputsSelected(true)
+            .addInputs(
+                LegacyInputPreference.newBuilder()
+                    .setId("sim-1")
+                    .setSlotIndex(0)
+                    .setSubscriptionId(41)
+                    .setLabel("SIM 1")
+                    .setEnabled(false)
+                    .build())
+            .addEmails(
+                LegacyEmailPreference.newBuilder()
+                    .setId("email")
+                    .setEnabled(true)
+                    .setSmtpHost("smtp.example.com")
+                    .setSmtpPort(587)
+                    .setSmtpUser("user@example.com")
+                    .setSmtpToken("legacy-token")
+                    .setFromEmail("from@example.com")
+                    .setEmailTo("to@example.com")
+                    .build())
+            .addMatrices(
+                LegacyMatrixPreference.newBuilder()
+                    .setId("matrix")
+                    .setEnabled(true)
+                    .setHomeserver("https://matrix.example.com")
+                    .build())
+            .build()
+    val currentPreferences = Preferences.parseFrom(oldPreferences.toByteArray())
+    val migrated = LegacyPreferencesMigration.migrate(currentPreferences)
+
+    assertEquals("legacy-token", migrated.emailsList.single().smtpPassword)
+    assertEquals(1, migrated.emailsList.single().inputsCount)
+    assertEquals(1, migrated.matricesList.single().inputsCount)
+    assertFalse(migrated.emailsList.single().inputsList.single().enabled)
   }
 
   @Test

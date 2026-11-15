@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+option java_package = "io.github.sms2email.sms2email";
+option java_multiple_files = true;
+option java_outer_classname = "LegacyPreferencesProto";
+
+enum LegacyPreferencesSmtpEncryptionMode {
+  LEGACY_PREFERENCES_SMTP_ENCRYPTION_MODE_STARTTLS = 0;
+  LEGACY_PREFERENCES_SMTP_ENCRYPTION_MODE_SMTPS = 1;
+  LEGACY_PREFERENCES_SMTP_ENCRYPTION_MODE_NONE = 2;
+}
+
+message LegacyPreferences {
+  bool inputs_selected = 1;
+  repeated LegacyInputPreference inputs = 2;
+  repeated LegacyEmailPreference emails = 3;
+  repeated LegacyMatrixPreference matrices = 4;
+}
+
+message LegacyInputPreference {
+  string id = 1;
+  int32 slot_index = 2;
+  int32 subscription_id = 3;
+  string label = 4;
+  bool enabled = 5;
+}
+
+message LegacyEmailPreference {
+  string id = 1;
+  string label = 2;
+  bool enabled = 3;
+  string email_to = 4;
+  string smtp_host = 5;
+  int32 smtp_port = 6;
+  string smtp_token = 8;
+  string smtp_user = 7;
+  string from_email = 9;
+  LegacyPreferencesSmtpEncryptionMode encryption_mode = 10;
+}
+
+message LegacyMatrixPreference {
+  string id = 1;
+  string label = 2;
+  bool enabled = 3;
+  string homeserver = 4;
+  string user = 5;
+  string access_token = 6;
+  string room_id = 7;
+  string device_id = 8;
+}

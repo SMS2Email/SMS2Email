@@ -48,7 +48,9 @@ private val Context.preferencesDataStore: DataStore<Preferences> by
     dataStore(
         fileName = "preferences.pb",
         serializer = PreferencesSerializer,
-        produceMigrations = { context -> listOf(LegacySmtpPreferencesMigration(context)) },
+        produceMigrations = { context ->
+          listOf(LegacySmtpPreferencesMigration(context), LegacyPreferencesMigration)
+        },
     )
 
 object PreferencesSerializer : Serializer<Preferences> {
