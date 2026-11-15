@@ -2,8 +2,8 @@ package io.github.sms2email.sms2email.send
 
 import android.content.Context
 import io.github.sms2email.sms2email.notifySmsForwarding
-import io.github.sms2email.sms2email.preferences.PreferencesManager
 import io.github.sms2email.sms2email.preferences.SimInput
+import io.github.sms2email.sms2email.preferences.getConfig
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -14,7 +14,7 @@ suspend fun sendSms(
     bypassInputFilter: Boolean = false,
 ): Int {
   val appContext = context.applicationContext
-  val config = PreferencesManager.getConfig(appContext)
+  val config = getConfig(appContext)
   val configuredOutputs =
       config.emails.count { it.isConfigured() } + config.matrix.count { it.isConfigured() }
 

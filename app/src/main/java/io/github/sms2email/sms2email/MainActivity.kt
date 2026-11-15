@@ -29,7 +29,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.core.content.ContextCompat
 import io.github.sms2email.sms2email.preferences.MatrixPreference
 import io.github.sms2email.sms2email.preferences.MatrixRoomOption
-import io.github.sms2email.sms2email.preferences.PreferencesManager
+import io.github.sms2email.sms2email.preferences.getConfig
+import io.github.sms2email.sms2email.preferences.updateMatrix
 import io.github.sms2email.sms2email.send.getMatrixSession
 import io.github.sms2email.sms2email.send.rememberMatrixSession
 import io.github.sms2email.sms2email.ui.SettingsScreen
@@ -136,9 +137,7 @@ class MainActivity : ComponentActivity() {
                 onConnectMatrix = ::connectMatrix,
                 onSelectMatrixRoom = { id, roomId ->
                   activityScope.launch {
-                    PreferencesManager.updateMatrix(this@MainActivity, id) {
-                      it.copy(roomId = roomId)
-                    }
+                    updateMatrix(this@MainActivity, id) { it.copy(roomId = roomId) }
                   }
                 },
                 modifier = Modifier.fillMaxSize(),
@@ -233,7 +232,7 @@ class MainActivity : ComponentActivity() {
       val rooms = loadJoinedRooms(session)
       val credentials = session.sessionParams.credentials
       var connectedMatrix: MatrixPreference? = null
-      PreferencesManager.updateMatrix(this, matrixId) {
+      updateMatrix(this, matrixId) {
         it.copy(
                 homeserver = homeserver,
                 user = credentials.userId,
@@ -266,7 +265,7 @@ class MainActivity : ComponentActivity() {
     activityScope.launch {
       val matrices =
           try {
-            PreferencesManager.getConfig(this@MainActivity).matrix.filter {
+            getConfig(this@MainActivity).matrix.filter {
               it.homeserver.startsWith("https://") &&
                   it.user.isNotBlank() &&
                   it.accessToken.isNotBlank() &&

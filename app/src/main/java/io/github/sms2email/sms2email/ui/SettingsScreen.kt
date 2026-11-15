@@ -62,11 +62,18 @@ import io.github.sms2email.sms2email.preferences.AvailableSim
 import io.github.sms2email.sms2email.preferences.EmailPreference
 import io.github.sms2email.sms2email.preferences.MatrixPreference
 import io.github.sms2email.sms2email.preferences.MatrixRoomOption
-import io.github.sms2email.sms2email.preferences.PreferencesManager
 import io.github.sms2email.sms2email.preferences.SimInput
 import io.github.sms2email.sms2email.preferences.activeSimCards
+import io.github.sms2email.sms2email.preferences.addEmail
+import io.github.sms2email.sms2email.preferences.addMatrix
+import io.github.sms2email.sms2email.preferences.configFlow
 import io.github.sms2email.sms2email.preferences.newEmailPreference
 import io.github.sms2email.sms2email.preferences.newMatrixPreference
+import io.github.sms2email.sms2email.preferences.removeEmail
+import io.github.sms2email.sms2email.preferences.removeMatrix
+import io.github.sms2email.sms2email.preferences.syncInputs
+import io.github.sms2email.sms2email.preferences.updateEmail
+import io.github.sms2email.sms2email.preferences.updateMatrix
 import io.github.sms2email.sms2email.send.SmsEvent
 import io.github.sms2email.sms2email.send.sendSms
 import kotlinx.coroutines.delay
@@ -89,7 +96,7 @@ fun SettingsScreen(
     onSelectMatrixRoom: (String, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
-  val config by PreferencesManager.configFlow(context).collectAsState(initial = AppConfig())
+  val config by configFlow(context).collectAsState(initial = AppConfig())
   val scope = rememberCoroutineScope()
   val availableSims =
       remember(isPhonePermissionGranted) {
@@ -101,7 +108,7 @@ fun SettingsScreen(
       config.emails.map { it.id },
       config.matrix.map { it.id },
   ) {
-    PreferencesManager.syncInputs(context, availableSims)
+    syncInputs(context, availableSims)
   }
 
   Column(
@@ -154,10 +161,8 @@ fun SettingsScreen(
         context = context,
         emails = config.emails,
         availableSims = availableSims,
-        onUpdate = { id, update ->
-          scope.launch { PreferencesManager.updateEmail(context, id, update) }
-        },
-        onRemove = { id -> scope.launch { PreferencesManager.removeEmail(context, id) } },
+        onUpdate = { id, update -> scope.launch { updateEmail(context, id, update) } },
+        onRemove = { id -> scope.launch { removeEmail(context, id) } },
     )
 
     MatrixCards(
@@ -165,21 +170,15 @@ fun SettingsScreen(
         availableSims = availableSims,
         rooms = matrixRooms,
         loadingMatrix = loadingMatrix,
-        onUpdate = { id, update ->
-          scope.launch { PreferencesManager.updateMatrix(context, id, update) }
-        },
+        onUpdate = { id, update -> scope.launch { updateMatrix(context, id, update) } },
         onConnect = onConnectMatrix,
         onSelectRoom = onSelectMatrixRoom,
-        onRemove = { id -> scope.launch { PreferencesManager.removeMatrix(context, id) } },
+        onRemove = { id -> scope.launch { removeMatrix(context, id) } },
     )
 
     AddOutputMenu(
-        onAddEmail = {
-          scope.launch { PreferencesManager.addEmail(context, newEmailPreference()) }
-        },
-        onAddMatrix = {
-          scope.launch { PreferencesManager.addMatrix(context, newMatrixPreference()) }
-        },
+        onAddEmail = { scope.launch { addEmail(context, newEmailPreference()) } },
+        onAddMatrix = { scope.launch { addMatrix(context, newMatrixPreference()) } },
     )
 
     Button(

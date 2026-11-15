@@ -7,13 +7,13 @@ import io.github.sms2email.sms2email.Preferences
 /** Migrates the pre-per-output preferences.pb schema. */
 internal object LegacyPreferencesMigration : androidx.datastore.core.DataMigration<Preferences> {
   override suspend fun shouldMigrate(currentData: Preferences): Boolean =
-      legacyPreferences(currentData)?.let { it.inputsSelected && it.inputsCount > 0 } == true
+      parseLegacyPreferences(currentData)?.let { it.inputsSelected && it.inputsCount > 0 } == true
 
   override suspend fun migrate(currentData: Preferences): Preferences {
-    val legacy = legacyPreferences(currentData) ?: return currentData
+    val legacy = parseLegacyPreferences(currentData) ?: return currentData
     if (!legacy.inputsSelected || legacy.inputsCount == 0) return currentData
 
-    val inputs = legacy.inputsList.map { it.toProto() }
+    val inputs = legacy.inputsList.map(::legacyInputPreference)
     val emails =
         currentData.emailsList.map { email ->
           if (email.inputsCount == 0) email.toBuilder().addAllInputs(inputs).build() else email
@@ -28,16 +28,16 @@ internal object LegacyPreferencesMigration : androidx.datastore.core.DataMigrati
   }
 
   override suspend fun cleanUp() = Unit
-
-  private fun legacyPreferences(currentData: Preferences): LegacyPreferences? =
-      runCatching { LegacyPreferences.parseFrom(currentData.toByteArray()) }.getOrNull()
-
-  private fun io.github.sms2email.sms2email.LegacyInputPreference.toProto() =
-      InputProto.newBuilder()
-          .setId(id)
-          .setSlotIndex(slotIndex)
-          .setSubscriptionId(subscriptionId)
-          .setLabel(label)
-          .setEnabled(enabled)
-          .build()
 }
+
+private fun parseLegacyPreferences(currentData: Preferences): LegacyPreferences? =
+    runCatching { LegacyPreferences.parseFrom(currentData.toByteArray()) }.getOrNull()
+
+private fun legacyInputPreference(input: io.github.sms2email.sms2email.LegacyInputPreference) =
+    InputProto.newBuilder()
+        .setId(input.id)
+        .setSlotIndex(input.slotIndex)
+        .setSubscriptionId(input.subscriptionId)
+        .setLabel(input.label)
+        .setEnabled(input.enabled)
+        .build()
