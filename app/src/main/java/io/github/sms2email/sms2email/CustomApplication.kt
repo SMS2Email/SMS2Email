@@ -3,29 +3,28 @@ package io.github.sms2email.sms2email
 import android.app.Application
 import android.content.Intent
 import kotlin.system.exitProcess
-import org.matrix.android.sdk.api.Matrix
-import org.matrix.android.sdk.api.MatrixConfiguration
-import org.matrix.android.sdk.api.provider.RoomDisplayNameFallbackProvider
+import org.matrix.rustcomponents.sdk.LogLevel
+import org.matrix.rustcomponents.sdk.TracingConfiguration
+import org.matrix.rustcomponents.sdk.initPlatform
+import org.matrix.rustsdk.Android
 
 class CustomApplication : Application() {
-  private val matrix by lazy {
-    Matrix(
-        context = this,
-        matrixConfiguration =
-            MatrixConfiguration(
-                roomDisplayNameFallbackProvider = SimpleRoomDisplayNameFallbackProvider,
-            ),
-    )
-  }
-
   override fun onCreate() {
     super.onCreate()
     setupCrashHandler()
-    // The Matrix SDK owns WorkManager initialization.
-    matrix()
+    Android.init(this)
+    initPlatform(
+        TracingConfiguration(
+            logLevel = LogLevel.WARN,
+            traceLogPacks = emptyList(),
+            extraTargets = emptyList(),
+            writeToStdoutOrSystem = true,
+            writeToFiles = null,
+            sentryConfig = null,
+        ),
+        false,
+    )
   }
-
-  fun matrix(): Matrix = matrix
 
   private fun setupCrashHandler() {
     val defaultUncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
@@ -52,34 +51,4 @@ class CustomApplication : Application() {
           .StringWriter()
           .also { writer -> throwable.printStackTrace(java.io.PrintWriter(writer)) }
           .toString()
-}
-
-private object SimpleRoomDisplayNameFallbackProvider : RoomDisplayNameFallbackProvider {
-  override fun excludedUserIds(roomId: String): List<String> = emptyList()
-
-  override fun getNameForRoomInvite(): String = "Room invite"
-
-  override fun getNameForEmptyRoom(isDirect: Boolean, leftMemberNames: List<String>): String =
-      "Empty room"
-
-  override fun getNameFor1member(name: String): String = name
-
-  override fun getNameFor2members(name1: String, name2: String): String = "$name1 and $name2"
-
-  override fun getNameFor3members(name1: String, name2: String, name3: String): String =
-      "$name1, $name2 and $name3"
-
-  override fun getNameFor4members(
-      name1: String,
-      name2: String,
-      name3: String,
-      name4: String,
-  ): String = "$name1, $name2, $name3 and $name4"
-
-  override fun getNameFor4membersAndMore(
-      name1: String,
-      name2: String,
-      name3: String,
-      remainingCount: Int,
-  ): String = "$name1, $name2, $name3 and $remainingCount others"
 }

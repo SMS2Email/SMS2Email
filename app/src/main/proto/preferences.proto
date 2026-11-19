@@ -13,6 +13,7 @@ enum SmtpEncryptionMode {
 message Preferences {
   repeated EmailPreference emails = 3;
   repeated MatrixPreference matrices = 4;
+  bool matrix_rust_migration_complete = 5;
 }
 
 message InputPreference {
@@ -45,4 +46,5 @@ message MatrixPreference {
   string room_id = 7;
   string device_id = 8;
   repeated InputPreference inputs = 9;
+  string refresh_token = 10;
 }

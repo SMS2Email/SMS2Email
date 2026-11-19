@@ -36,9 +36,8 @@ android {
 
   buildTypes {
     release {
-      // Matrix SDK 1.6.62's reflective Moshi adapters fail under R8.
-      isMinifyEnabled = false
-      isShrinkResources = false
+      isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(
           getDefaultProguardFile("proguard-android-optimize.txt"),
           "proguard-rules.pro",
@@ -66,6 +65,7 @@ android {
   testOptions { unitTests { isIncludeAndroidResources = true } }
 
   packaging {
+    jniLibs { useLegacyPackaging = true }
     resources {
       excludes += "META-INF/LICENSE.md"
       excludes += "META-INF/NOTICE.md"
@@ -98,7 +98,7 @@ dependencies {
   androidTestImplementation(libs.androidx.junit)
   implementation(libs.android.mail)
   implementation(libs.android.activation)
-  implementation(libs.matrix.android.sdk)
+  implementation(libs.matrix.rust.sdk.android)
   implementation(libs.aboutlibraries.core)
   implementation(libs.aboutlibraries.compose.m3)
   implementation(libs.androidx.compose.material.icons.extended)

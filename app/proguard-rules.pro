@@ -19,3 +19,6 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# The Matrix Rust SDK looks up this JNI entry point by its fully qualified name.
+-keep class org.matrix.rustsdk.Android { *; }

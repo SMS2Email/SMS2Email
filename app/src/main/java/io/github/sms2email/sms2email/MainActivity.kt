@@ -31,8 +31,13 @@ import io.github.sms2email.sms2email.preferences.MatrixPreference
 import io.github.sms2email.sms2email.preferences.MatrixRoomOption
 import io.github.sms2email.sms2email.preferences.getConfig
 import io.github.sms2email.sms2email.preferences.updateMatrix
+import io.github.sms2email.sms2email.send.MatrixSdkSession
+import io.github.sms2email.sms2email.send.forgetMatrixSession
 import io.github.sms2email.sms2email.send.getMatrixSession
-import io.github.sms2email.sms2email.send.rememberMatrixSession
+import io.github.sms2email.sms2email.send.newMatrixLoginClient
+import io.github.sms2email.sms2email.ui.MatrixSasEmoji
+import io.github.sms2email.sms2email.ui.MatrixVerificationDialog
+import io.github.sms2email.sms2email.ui.MatrixVerificationPrompt
 import io.github.sms2email.sms2email.ui.SettingsScreen
 import io.github.sms2email.sms2email.ui.theme.SMS2EmailTheme
 import java.util.concurrent.TimeUnit
@@ -46,12 +51,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.matrix.android.sdk.api.auth.SSOAction
-import org.matrix.android.sdk.api.auth.data.HomeServerConnectionConfig
-import org.matrix.android.sdk.api.session.Session
-import org.matrix.android.sdk.api.session.room.RoomSortOrder
-import org.matrix.android.sdk.api.session.room.model.Membership
-import org.matrix.android.sdk.api.session.room.roomSummaryQueryParams
+import org.matrix.rustcomponents.sdk.Client
+import org.matrix.rustcomponents.sdk.Membership
+import org.matrix.rustcomponents.sdk.SessionVerificationController
+import org.matrix.rustcomponents.sdk.SessionVerificationControllerDelegate
+import org.matrix.rustcomponents.sdk.SessionVerificationData
+import org.matrix.rustcomponents.sdk.SsoHandler
 
 class MainActivity : ComponentActivity() {
   private val smsPermissionGranted = MutableStateFlow(false)
@@ -59,11 +64,14 @@ class MainActivity : ComponentActivity() {
   private val notificationPermissionGranted = MutableStateFlow(false)
   private val matrixRooms = MutableStateFlow<Map<String, List<MatrixRoomOption>>>(emptyMap())
   private val matrixLoading = MutableStateFlow<Set<String>>(emptySet())
+  private val matrixVerification = MutableStateFlow<MatrixVerificationPrompt?>(null)
   private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+  private val verificationControllers = mutableSetOf<SessionVerificationController>()
   private var matrixLoginJob: Job? = null
   private var pendingMatrix: MatrixPreference? = null
-  private var pendingHomeserver: String? = null
-  private var handledMatrixLoginToken: String? = null
+  private var pendingLoginClient: Client? = null
+  private var pendingSsoHandler: SsoHandler? = null
+  private var handledMatrixCallback: String? = null
 
   private val smsPermissionLauncher =
       registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -99,6 +107,7 @@ class MainActivity : ComponentActivity() {
         val notificationsGranted by notificationPermissionGranted.collectAsState()
         val rooms by matrixRooms.collectAsState()
         val loadingMatrix by matrixLoading.collectAsState()
+        val verification by matrixVerification.collectAsState()
         Box(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         ) {
@@ -135,12 +144,24 @@ class MainActivity : ComponentActivity() {
                 matrixRooms = rooms,
                 loadingMatrix = loadingMatrix,
                 onConnectMatrix = ::connectMatrix,
+                onVerifyMatrix = ::verifyMatrix,
                 onSelectMatrixRoom = { id, roomId ->
                   activityScope.launch {
                     updateMatrix(this@MainActivity, id) { it.copy(roomId = roomId) }
                   }
                 },
                 modifier = Modifier.fillMaxSize(),
+            )
+          }
+          verification?.let { prompt ->
+            MatrixVerificationDialog(
+                prompt = prompt,
+                onAccept = { acceptVerification(prompt) },
+                onReject = { cancelVerification(prompt) },
+                onConfirm = { confirmVerification(prompt) },
+                onMismatch = { mismatchVerification(prompt) },
+                onCancel = { cancelVerification(prompt) },
+                onDone = { matrixVerification.value = null },
             )
           }
         }
@@ -157,95 +178,108 @@ class MainActivity : ComponentActivity() {
   }
 
   override fun onDestroy() {
+    verificationControllers.forEach { it.setDelegate(null) }
+    verificationControllers.clear()
     activityScope.cancel()
     super.onDestroy()
   }
 
   private fun connectMatrix(matrix: MatrixPreference) {
     matrixLoginJob?.cancel()
-    handledMatrixLoginToken = null
+    clearPendingLogin()
+    handledMatrixCallback = null
     pendingMatrix = matrix
-    pendingHomeserver = matrix.homeserver
     matrixLoginJob =
         activityScope.launch {
+          var loginClient: Client? = null
+          var ssoHandler: SsoHandler? = null
           try {
-            val application = application as CustomApplication
-            val homeServer =
-                HomeServerConnectionConfig.Builder()
-                    .withHomeServerUri(matrix.homeserver.trimEnd('/'))
-                    .build()
-            val authentication = application.matrix().authenticationService()
-            val flow = withContext(Dispatchers.IO) { authentication.getLoginFlow(homeServer) }
-            check(flow.supportedLoginTypes.contains("m.login.sso")) {
-              "This homeserver does not provide Matrix SSO."
-            }
-            val url =
-                authentication.getSsoUrl(
-                    MATRIX_SSO_REDIRECT,
-                    null,
-                    null,
-                    SSOAction.LOGIN,
-                )
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            val client = withContext(Dispatchers.IO) { newMatrixLoginClient(matrix) }
+            loginClient = client
+            val handler =
+                withContext(Dispatchers.IO) { client.startSsoLogin(MATRIX_SSO_REDIRECT, null) }
+            ssoHandler = handler
+            pendingLoginClient = client
+            pendingSsoHandler = handler
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(handler.url())))
+            loginClient = null
+            ssoHandler = null
           } catch (exception: Exception) {
+            clearPendingLogin()
             Toast.makeText(
                     this@MainActivity,
                     exception.message ?: "Unable to start Matrix login",
                     Toast.LENGTH_LONG,
                 )
                 .show()
+          } finally {
+            ssoHandler?.close()
+            loginClient?.close()
           }
         }
   }
 
   private fun handleMatrixRedirect(intent: Intent?) {
-    val data = intent?.data ?: return
-    if (data.scheme != "sms2email" || data.host != "matrix" || data.path != "/sso") return
-    val loginToken = data.getQueryParameter("loginToken")
-    if (loginToken.isNullOrBlank()) {
-      Toast.makeText(this, "Matrix browser login did not return a token", Toast.LENGTH_LONG).show()
+    val callbackUrl =
+        intent
+            ?.data
+            ?.takeIf { it.scheme == "sms2email" && it.host == "matrix" && it.path == "/sso" }
+            ?.toString() ?: return
+    if (callbackUrl == handledMatrixCallback) return
+    if (pendingLoginClient == null || pendingSsoHandler == null) {
+      Toast.makeText(this, "Matrix login expired. Please sign in again.", Toast.LENGTH_LONG).show()
       return
     }
-    if (loginToken == handledMatrixLoginToken) return
-    handledMatrixLoginToken = loginToken
+    handledMatrixCallback = callbackUrl
     pendingMatrix?.id?.let { matrixLoading.value = matrixLoading.value + it }
-    matrixLoginJob?.cancel()
-    matrixLoginJob = activityScope.launch { finishMatrixLogin(loginToken) }
+    matrixLoginJob = activityScope.launch { finishMatrixLogin(callbackUrl) }
   }
 
-  private suspend fun finishMatrixLogin(loginToken: String) {
-    val matrix = pendingMatrix ?: return
+  private fun clearPendingLogin() {
+    pendingSsoHandler?.close()
+    pendingLoginClient?.close()
+    pendingSsoHandler = null
+    pendingLoginClient = null
+  }
+
+  private suspend fun finishMatrixLogin(callbackUrl: String) {
+    val matrix = pendingMatrix
+    val loginClient = pendingLoginClient
+    val ssoHandler = pendingSsoHandler
+    pendingLoginClient = null
+    pendingSsoHandler = null
+    if (matrix == null || loginClient == null || ssoHandler == null) {
+      ssoHandler?.close()
+      loginClient?.close()
+      return
+    }
     val matrixId = matrix.id
-    val homeserver = pendingHomeserver ?: return
-    var loginSession: Session? = null
-    var sessionCached = false
     try {
-      val application = application as CustomApplication
-      val authentication = application.matrix().authenticationService()
       val session =
-          withContext(Dispatchers.IO) { authentication.getLoginWizard().loginWithToken(loginToken) }
-      loginSession = session
-      withContext(Dispatchers.Main) {
-        session.open()
-        session.syncService().startSync(true)
-      }
-      val rooms = loadJoinedRooms(session)
-      val credentials = session.sessionParams.credentials
+          withContext(Dispatchers.IO) {
+            ssoHandler.finish(callbackUrl)
+            loginClient.session()
+          }
+      forgetMatrixSession(matrixId)
       var connectedMatrix: MatrixPreference? = null
       updateMatrix(this, matrixId) {
         it.copy(
-                homeserver = homeserver,
-                user = credentials.userId,
-                accessToken = credentials.accessToken,
+                homeserver = session.homeserverUrl,
+                user = session.userId,
+                accessToken = session.accessToken,
+                refreshToken = session.refreshToken.orEmpty(),
                 roomId = "",
-                deviceId = credentials.deviceId,
+                deviceId = session.deviceId,
             )
             .also { connectedMatrix = it }
       }
-      rememberMatrixSession(connectedMatrix ?: error("Matrix preference disappeared"), session)
-      sessionCached = true
+      val savedMatrix = connectedMatrix ?: error("Matrix preference disappeared")
+      val matrixSession = getMatrixSession(this, savedMatrix)
+      attachVerificationDelegate(matrixSession)
+      val rooms = loadJoinedRooms(matrixSession)
       matrixRooms.value = matrixRooms.value + (matrixId to rooms)
       Toast.makeText(this, "Matrix connected. Select a room.", Toast.LENGTH_SHORT).show()
+      requestDeviceVerification(matrixSession)
     } catch (exception: Exception) {
       Toast.makeText(
               this,
@@ -254,9 +288,8 @@ class MainActivity : ComponentActivity() {
           )
           .show()
     } finally {
-      if (!sessionCached) {
-        loginSession?.let { session -> withContext(Dispatchers.Main) { session.close() } }
-      }
+      ssoHandler.close()
+      loginClient.close()
       matrixLoading.value = matrixLoading.value - matrixId
     }
   }
@@ -277,7 +310,9 @@ class MainActivity : ComponentActivity() {
       matrices.forEach { matrix ->
         matrixLoading.value = matrixLoading.value + matrix.id
         try {
-          val rooms = loadJoinedRooms(getMatrixSession(this@MainActivity, matrix))
+          val session = getMatrixSession(this@MainActivity, matrix)
+          attachVerificationDelegate(session)
+          val rooms = loadJoinedRooms(session)
           matrixRooms.value = matrixRooms.value + (matrix.id to rooms)
         } catch (_: Exception) {
           // Keep the sender visible; the UI will explain that no rooms are available.
@@ -288,32 +323,222 @@ class MainActivity : ComponentActivity() {
     }
   }
 
-  private suspend fun loadJoinedRooms(session: Session): List<MatrixRoomOption> =
+  private suspend fun loadJoinedRooms(session: MatrixSdkSession): List<MatrixRoomOption> =
       withTimeout(TimeUnit.SECONDS.toMillis(30)) {
-        var options = emptyList<MatrixRoomOption>()
-        while (options.isEmpty()) {
-          val summaries =
-              withContext(Dispatchers.IO) {
-                session
-                    .roomService()
-                    .getRoomSummaries(
-                        roomSummaryQueryParams { memberships = listOf(Membership.JOIN) },
-                        RoomSortOrder.NAME,
+        while (true) {
+          val rooms = withContext(Dispatchers.IO) { session.client.rooms() }
+          val options =
+              try {
+                rooms.mapNotNull { room ->
+                  if (room.membership() != Membership.JOINED) return@mapNotNull null
+                  val name = room.displayName().orEmpty()
+                  MatrixRoomOption(
+                      id = room.id(),
+                      name = name.ifBlank { room.canonicalAlias().orEmpty().ifBlank { room.id() } },
+                  )
+                }
+              } finally {
+                rooms.forEach { it.close() }
+              }
+          if (options.isNotEmpty()) return@withTimeout options
+          delay(500)
+        }
+        emptyList()
+      }
+
+  private fun verifyMatrix(matrix: MatrixPreference) {
+    activityScope.launch {
+      try {
+        val session = getMatrixSession(this@MainActivity, matrix)
+        attachVerificationDelegate(session)
+        requestDeviceVerification(session)
+      } catch (exception: Exception) {
+        Toast.makeText(
+                this@MainActivity,
+                exception.message ?: "Unable to start device verification",
+                Toast.LENGTH_LONG,
+            )
+            .show()
+      }
+    }
+  }
+
+  private suspend fun requestDeviceVerification(session: MatrixSdkSession) {
+    matrixVerification.value =
+        MatrixVerificationPrompt.Waiting(
+            session.verificationController,
+            "Sending a verification request to your other Matrix device…",
+        )
+    try {
+      session.verificationController.requestDeviceVerification()
+      matrixVerification.value =
+          MatrixVerificationPrompt.Waiting(
+              session.verificationController,
+              "Waiting for your other Matrix device to accept the request…",
+          )
+    } catch (exception: Exception) {
+      matrixVerification.value =
+          MatrixVerificationPrompt.Failed(
+              session.verificationController,
+              exception.message ?: "Unable to request device verification.",
+          )
+    }
+  }
+
+  private fun attachVerificationDelegate(session: MatrixSdkSession) {
+    val controller = session.verificationController
+    if (!verificationControllers.add(controller)) return
+    controller.setDelegate(
+        object : SessionVerificationControllerDelegate {
+          override fun didReceiveVerificationRequest(
+              details: org.matrix.rustcomponents.sdk.SessionVerificationRequestDetails,
+          ) {
+            activityScope.launch {
+              matrixVerification.value = MatrixVerificationPrompt.Incoming(controller, details)
+            }
+          }
+
+          override fun didAcceptVerificationRequest() {
+            activityScope.launch {
+              try {
+                controller.startSasVerification()
+                matrixVerification.value =
+                    MatrixVerificationPrompt.Waiting(controller, "Starting emoji comparison…")
+              } catch (exception: Exception) {
+                matrixVerification.value =
+                    MatrixVerificationPrompt.Failed(
+                        controller,
+                        exception.message ?: "Unable to start emoji comparison.",
                     )
               }
-          options =
-              summaries.map { summary ->
-                val displayName = summary.displayName.orEmpty()
-                val canonicalAlias = summary.canonicalAlias.orEmpty()
-                MatrixRoomOption(
-                    id = summary.roomId,
-                    name = displayName.ifBlank { canonicalAlias.ifBlank { summary.roomId } },
-                )
-              }
-          if (options.isEmpty()) delay(500)
-        }
-        options
+            }
+          }
+
+          override fun didStartSasVerification() {
+            activityScope.launch {
+              matrixVerification.value =
+                  MatrixVerificationPrompt.Waiting(controller, "Preparing the security code…")
+            }
+          }
+
+          override fun didReceiveVerificationData(data: SessionVerificationData) {
+            val prompt =
+                when (data) {
+                  is SessionVerificationData.Emojis ->
+                      MatrixVerificationPrompt.Emojis(
+                          controller,
+                          data.emojis.map { MatrixSasEmoji(it.symbol(), it.description()) },
+                      )
+                  is SessionVerificationData.Decimals ->
+                      MatrixVerificationPrompt.Decimals(
+                          controller,
+                          data.values.map { it.toInt() },
+                      )
+                }
+            data.destroy()
+            activityScope.launch { matrixVerification.value = prompt }
+          }
+
+          override fun didFail() {
+            activityScope.launch {
+              matrixVerification.value =
+                  MatrixVerificationPrompt.Failed(controller, "Device verification failed.")
+            }
+          }
+
+          override fun didCancel() {
+            activityScope.launch {
+              matrixVerification.value =
+                  MatrixVerificationPrompt.Failed(
+                      controller, "The other device cancelled verification.")
+            }
+          }
+
+          override fun didFinish() {
+            activityScope.launch {
+              matrixVerification.value = MatrixVerificationPrompt.Finished(controller)
+            }
+          }
+        },
+    )
+  }
+
+  private fun acceptVerification(prompt: MatrixVerificationPrompt) {
+    val incoming = prompt as? MatrixVerificationPrompt.Incoming ?: return
+    activityScope.launch {
+      try {
+        incoming.controller.acknowledgeVerificationRequest(
+            incoming.details.senderProfile.userId,
+            incoming.details.flowId,
+        )
+        incoming.controller.acceptVerificationRequest()
+        matrixVerification.value =
+            MatrixVerificationPrompt.Waiting(
+                incoming.controller,
+                "Waiting for the other device to start emoji comparison…",
+            )
+      } catch (exception: Exception) {
+        showVerificationError(incoming.controller, exception)
       }
+    }
+  }
+
+  private fun confirmVerification(prompt: MatrixVerificationPrompt) {
+    if (prompt !is MatrixVerificationPrompt.Emojis && prompt !is MatrixVerificationPrompt.Decimals)
+        return
+    activityScope.launch {
+      try {
+        prompt.controller.approveVerification()
+        matrixVerification.value =
+            MatrixVerificationPrompt.Waiting(prompt.controller, "Finishing device verification…")
+      } catch (exception: Exception) {
+        showVerificationError(prompt.controller, exception)
+      }
+    }
+  }
+
+  private fun mismatchVerification(prompt: MatrixVerificationPrompt) {
+    if (prompt !is MatrixVerificationPrompt.Emojis && prompt !is MatrixVerificationPrompt.Decimals)
+        return
+    activityScope.launch {
+      try {
+        prompt.controller.declineVerification()
+        matrixVerification.value =
+            MatrixVerificationPrompt.Failed(prompt.controller, "The security codes did not match.")
+      } catch (exception: Exception) {
+        showVerificationError(prompt.controller, exception)
+      }
+    }
+  }
+
+  private fun cancelVerification(prompt: MatrixVerificationPrompt) {
+    activityScope.launch {
+      try {
+        if (prompt is MatrixVerificationPrompt.Incoming) {
+          prompt.controller.acknowledgeVerificationRequest(
+              prompt.details.senderProfile.userId,
+              prompt.details.flowId,
+          )
+        }
+        prompt.controller.cancelVerification()
+      } catch (_: Exception) {
+        // The request may already have been cancelled by the other device.
+      } finally {
+        matrixVerification.value = null
+      }
+    }
+  }
+
+  private fun showVerificationError(
+      controller: SessionVerificationController,
+      exception: Exception,
+  ) {
+    matrixVerification.value =
+        MatrixVerificationPrompt.Failed(
+            controller,
+            exception.message ?: "Device verification failed.",
+        )
+  }
 
   private fun hasPermission(permission: String): Boolean =
       ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED

@@ -93,6 +93,7 @@ fun SettingsScreen(
     matrixRooms: Map<String, List<MatrixRoomOption>> = emptyMap(),
     loadingMatrix: Set<String> = emptySet(),
     onConnectMatrix: (MatrixPreference) -> Unit = {},
+    onVerifyMatrix: (MatrixPreference) -> Unit = {},
     onSelectMatrixRoom: (String, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
@@ -172,6 +173,7 @@ fun SettingsScreen(
         loadingMatrix = loadingMatrix,
         onUpdate = { id, update -> scope.launch { updateMatrix(context, id, update) } },
         onConnect = onConnectMatrix,
+        onVerify = onVerifyMatrix,
         onSelectRoom = onSelectMatrixRoom,
         onRemove = { id -> scope.launch { removeMatrix(context, id) } },
     )
@@ -184,6 +186,9 @@ fun SettingsScreen(
     Button(
         onClick = {
           scope.launch {
+            val hasEligibleOutput =
+                config.emails.any { it.enabled && it.isConfigured() } ||
+                    config.matrix.any { it.enabled && it.isConfigured() }
             val report =
                 sendSms(
                     context,
@@ -191,7 +196,11 @@ fun SettingsScreen(
                     bypassInputFilter = true,
                 )
             val message =
-                if (report == 0) "No sender succeeded" else "Test sent to $report sender(s)"
+                when {
+                  report > 0 -> "Test sent to $report sender(s)"
+                  !hasEligibleOutput -> "No active configured sender."
+                  else -> "No sender succeeded"
+                }
             android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT)
                 .show()
           }
@@ -337,6 +346,7 @@ private fun MatrixCards(
     loadingMatrix: Set<String>,
     onUpdate: (String, (MatrixPreference) -> MatrixPreference) -> Unit,
     onConnect: (MatrixPreference) -> Unit,
+    onVerify: (MatrixPreference) -> Unit,
     onSelectRoom: (String, String) -> Unit,
     onRemove: (String) -> Unit,
 ) {
@@ -359,6 +369,7 @@ private fun MatrixCards(
             loading = item.id in loadingMatrix,
             onUpdate = onUpdate,
             onConnect = { onConnect(item) },
+            onVerify = { onVerify(item) },
             onSelectRoom = { roomId -> onSelectRoom(item.id, roomId) },
         )
       }
@@ -645,6 +656,7 @@ private fun MatrixFields(
     loading: Boolean,
     onUpdate: (String, (MatrixPreference) -> MatrixPreference) -> Unit,
     onConnect: () -> Unit,
+    onVerify: () -> Unit,
     onSelectRoom: (String) -> Unit,
 ) {
   val homeserver =
@@ -675,6 +687,9 @@ private fun MatrixFields(
         text = "Connected as ${matrix.user}",
         style = MaterialTheme.typography.bodySmall,
     )
+    OutlinedButton(onClick = onVerify, modifier = Modifier.fillMaxWidth()) {
+      Text("Verify device with emoji")
+    }
   }
   if (rooms.isNotEmpty()) {
     val selectedRoom = rooms.firstOrNull { it.id == matrix.roomId }
