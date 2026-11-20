@@ -22,3 +22,15 @@
 
 # The Matrix Rust SDK looks up this JNI entry point by its fully qualified name.
 -keep class org.matrix.rustsdk.Android { *; }
+
+# JNA resolves classes and members by name through JNI and reflection.
+-keep class com.sun.jna.** { *; }
+-keep class * extends com.sun.jna.Structure { *; }
+-keep class * implements com.sun.jna.Callback { *; }
+-dontwarn java.awt.Component
+-dontwarn java.awt.GraphicsEnvironment
+-dontwarn java.awt.HeadlessException
+-dontwarn java.awt.Window
+
+# Protobuf-lite resolves generated message fields by their original names.
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite { <fields>; }
