@@ -10,6 +10,12 @@ enum SmtpEncryptionMode {
   SMTP_ENCRYPTION_MODE_NONE = 2;
 }
 
+enum PgpMode {
+  PGP_MODE_OFF = 0;
+  // Sign with this phone's key and encrypt to the recipient, both through OpenKeychain.
+  PGP_MODE_OPENKEYCHAIN = 1;
+}
+
 message Preferences {
   repeated EmailPreference emails = 3;
   repeated MatrixPreference matrices = 4;
@@ -34,6 +40,11 @@ message EmailPreference {
   string from_email = 9;
   SmtpEncryptionMode encryption_mode = 10;
   repeated InputPreference inputs = 11;
+  PgpMode pgp_mode = 12;
+  // Recipient key IDs chosen in OpenKeychain.
+  repeated int64 pgp_key_ids = 13;
+  // This phone's signing key ID chosen in OpenKeychain.
+  int64 pgp_sign_key_id = 14;
 }
 
 message MatrixPreference {
