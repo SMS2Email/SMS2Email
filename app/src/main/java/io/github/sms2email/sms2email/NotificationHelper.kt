@@ -30,15 +30,25 @@ fun notifySmsForwarding(
     totalOutputs: Int,
 ) {
   val succeeded = successfulOutputs > 0
+  val noOutputs = totalOutputs == 0
   notify(
       context,
       notificationId(event.id),
-      if (succeeded) "SMS from ${event.sender} transferred ($successfulOutputs/$totalOutputs)"
-      else "SMS forwarding failed",
-      if (succeeded) event.body.take(120)
-      else if (totalOutputs == 0) "No configured output accepts this SMS."
-      else "$successfulOutputs of $totalOutputs configured output(s) succeeded.",
-      if (succeeded) android.R.drawable.ic_dialog_email else android.R.drawable.ic_dialog_alert,
+      when {
+        noOutputs -> "SMS received"
+        succeeded -> "SMS from ${event.sender} transferred ($successfulOutputs/$totalOutputs)"
+        else -> "SMS forwarding failed"
+      },
+      when {
+        noOutputs -> "No enabled configured output accepts this SMS."
+        succeeded -> event.body.take(120)
+        else -> "$successfulOutputs of $totalOutputs active output(s) succeeded."
+      },
+      when {
+        noOutputs -> android.R.drawable.ic_dialog_info
+        succeeded -> android.R.drawable.ic_dialog_email
+        else -> android.R.drawable.ic_dialog_alert
+      },
   )
 }
 

@@ -15,41 +15,26 @@ suspend fun sendSms(
 ): Int {
   val appContext = context.applicationContext
   val config = getConfig(appContext)
-  val configuredOutputs =
-      config.emails.count { it.isConfigured() } + config.matrix.count { it.isConfigured() }
+  val emails =
+      config.emails.filter {
+        it.enabled && it.isConfigured() && (bypassInputFilter || acceptsInput(it.inputs, event))
+      }
+  val matrices =
+      config.matrix.filter {
+        it.enabled && it.isConfigured() && (bypassInputFilter || acceptsInput(it.inputs, event))
+      }
+  val totalOutputs = emails.size + matrices.size
 
   val jobs =
       buildList<suspend () -> Boolean> {
-        config.emails
-            .filter { email ->
-              email.enabled && (bypassInputFilter || acceptsInput(email.inputs, event))
-            }
-            .forEach { email ->
-              add {
-                runCatching {
-                      check(email.isConfigured()) { "Email sender is not configured" }
-                      sendEmail(event, email)
-                    }
-                    .isSuccess
-              }
-            }
-        config.matrix
-            .filter { matrix ->
-              matrix.enabled && (bypassInputFilter || acceptsInput(matrix.inputs, event))
-            }
-            .forEach { matrix ->
-              add {
-                runCatching {
-                      check(matrix.isConfigured()) { "Matrix sender is not configured" }
-                      sendMatrix(appContext, event, matrix)
-                    }
-                    .isSuccess
-              }
-            }
+        emails.forEach { email -> add { runCatching { sendEmail(event, email) }.isSuccess } }
+        matrices.forEach { matrix ->
+          add { runCatching { sendMatrix(appContext, event, matrix) }.isSuccess }
+        }
       }
   val results = coroutineScope { jobs.map { async { it() } }.awaitAll() }
   val successful = results.count { it }
-  notifySmsForwarding(appContext, event, successful, configuredOutputs)
+  notifySmsForwarding(appContext, event, successful, totalOutputs)
   return successful
 }
 

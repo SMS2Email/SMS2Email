@@ -36,6 +36,7 @@ internal val initialPreferences =
                 .setEnabled(true)
                 .setHomeserver("https://matrix.org")
                 .build())
+        .setMatrixRustMigrationComplete(true)
         .build()
 
 internal fun Preferences.isInitialPreferences() =
@@ -49,7 +50,11 @@ private val Context.preferencesDataStore: DataStore<Preferences> by
         fileName = "preferences.pb",
         serializer = PreferencesSerializer,
         produceMigrations = { context ->
-          listOf(LegacySmtpPreferencesMigration(context), LegacyPreferencesMigration)
+          listOf(
+              LegacySmtpPreferencesMigration(context),
+              LegacyPreferencesMigration,
+              ResetMatrixPreferencesMigration,
+          )
         },
     )
 
@@ -225,6 +230,7 @@ private fun MatrixProto.toModel() =
         homeserver = homeserver.ifBlank { "https://matrix.org" },
         user = user,
         accessToken = accessToken,
+        refreshToken = refreshToken,
         roomId = roomId,
         deviceId = deviceId,
         inputs = inputsList.map { it.toModel() },
@@ -237,6 +243,7 @@ private fun MatrixPreference.toProto() =
         .setHomeserver(homeserver)
         .setUser(user)
         .setAccessToken(accessToken)
+        .setRefreshToken(refreshToken)
         .setRoomId(roomId)
         .setDeviceId(deviceId)
         .addAllInputs(inputs.map { it.toProto() })

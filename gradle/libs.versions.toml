@@ -2,7 +2,7 @@
 aboutLibraries = "15.3.0"
 agp = "9.5.2"
 androidMail = "1.6.8"
-matrixAndroidSdk = "1.6.62"
+matrixRustSdk = "26.11.17"
 datastoreProto = "1.2.1"
 materialIconsExtended = "1.7.8"
 protobufPlugin = "0.10.1"
@@ -20,7 +20,7 @@ aboutlibraries-core = { module = "com.mikepenz:aboutlibraries-core", version.ref
 aboutlibraries-compose-m3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutLibraries" }      # Material 3 UI
 android-activation = { module = "com.sun.mail:android-activation", version.ref = "androidMail" }
 android-mail = { module = "com.sun.mail:android-mail", version.ref = "androidMail" }
-matrix-android-sdk = { module = "org.matrix.android:matrix-android-sdk2", version.ref = "matrixAndroidSdk" }
+matrix-rust-sdk-android = { module = "org.matrix.rustcomponents:sdk-android", version.ref = "matrixRustSdk" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-proto = { module = "androidx.datastore:datastore", version.ref = "datastoreProto" }

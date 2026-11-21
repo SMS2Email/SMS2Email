@@ -1,9 +1,12 @@
 package io.github.sms2email.sms2email
 
+import io.github.sms2email.sms2email.EmailPreference as EmailProto
+import io.github.sms2email.sms2email.MatrixPreference as MatrixProto
 import io.github.sms2email.sms2email.preferences.EmailPreference
 import io.github.sms2email.sms2email.preferences.LegacyPreferencesMigration
 import io.github.sms2email.sms2email.preferences.MatrixPreference
 import io.github.sms2email.sms2email.preferences.PreferencesSerializer
+import io.github.sms2email.sms2email.preferences.ResetMatrixPreferencesMigration
 import io.github.sms2email.sms2email.preferences.SimInput
 import io.github.sms2email.sms2email.preferences.legacySmtpEmail
 import io.github.sms2email.sms2email.send.SmsEvent
@@ -119,6 +122,23 @@ class ForwardingConfigurationTest {
     assertEquals(1, migrated.emailsList.single().inputsCount)
     assertEquals(1, migrated.matricesList.single().inputsCount)
     assertFalse(migrated.emailsList.single().inputsList.single().enabled)
+  }
+
+  @Test
+  fun rustSdkMigrationDropsOldMatrixSettingsAndToken() = runBlocking {
+    val oldPreferences =
+        Preferences.newBuilder()
+            .addEmails(EmailProto.newBuilder().setId("email").build())
+            .addMatrices(
+                MatrixProto.newBuilder().setId("legacy-matrix").setAccessToken("old-token").build())
+            .build()
+
+    val migrated = ResetMatrixPreferencesMigration.migrate(oldPreferences)
+
+    assertTrue(migrated.matrixRustMigrationComplete)
+    assertEquals(1, migrated.emailsCount)
+    assertEquals("default-matrix", migrated.matricesList.single().id)
+    assertEquals("", migrated.matricesList.single().accessToken)
   }
 
   @Test

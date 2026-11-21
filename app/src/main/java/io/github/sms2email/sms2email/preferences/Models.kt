@@ -48,6 +48,7 @@ data class MatrixPreference(
     val homeserver: String = "https://matrix.org",
     val user: String = "",
     val accessToken: String = "",
+    val refreshToken: String = "",
     val roomId: String = "",
     val deviceId: String = "",
     val inputs: List<SimInput> = emptyList(),
