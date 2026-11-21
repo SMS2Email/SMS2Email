@@ -98,6 +98,7 @@ dependencies {
   androidTestImplementation(libs.androidx.junit)
   implementation(libs.android.mail)
   implementation(libs.android.activation)
+  implementation(libs.openpgp.api)
   implementation(libs.matrix.android.sdk)
   implementation(libs.aboutlibraries.core)
   implementation(libs.aboutlibraries.compose.m3)

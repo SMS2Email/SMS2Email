@@ -3,6 +3,10 @@ package io.github.sms2email.sms2email.ui
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -46,6 +50,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,6 +61,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import io.github.sms2email.sms2email.AboutActivity
+import io.github.sms2email.sms2email.PgpMode
 import io.github.sms2email.sms2email.SmtpEncryptionMode
 import io.github.sms2email.sms2email.preferences.AppConfig
 import io.github.sms2email.sms2email.preferences.AvailableSim
@@ -74,7 +80,16 @@ import io.github.sms2email.sms2email.preferences.removeMatrix
 import io.github.sms2email.sms2email.preferences.syncInputs
 import io.github.sms2email.sms2email.preferences.updateEmail
 import io.github.sms2email.sms2email.preferences.updateMatrix
+import io.github.sms2email.sms2email.send.ENCRYPTED_SUBJECT
+import io.github.sms2email.sms2email.send.OPENKEYCHAIN_PACKAGE
+import io.github.sms2email.sms2email.send.OpenKeychainResult
 import io.github.sms2email.sms2email.send.SmsEvent
+import io.github.sms2email.sms2email.send.formatKeyId
+import io.github.sms2email.sms2email.send.isOpenKeychainInstalled
+import io.github.sms2email.sms2email.send.secretMimeEntity
+import io.github.sms2email.sms2email.send.selectRecipientKeys
+import io.github.sms2email.sms2email.send.selectSigningKey
+import io.github.sms2email.sms2email.send.signAndEncrypt
 import io.github.sms2email.sms2email.send.sendSms
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -586,6 +601,196 @@ private fun EmailFields(
       "To Email Address",
       onValueChange = { recipient.value = it },
       keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+  )
+  PgpFields(context, email, onUpdate)
+}
+
+@Composable
+private fun PgpFields(
+    context: Context,
+    email: EmailPreference,
+    onUpdate: (String, (EmailPreference) -> EmailPreference) -> Unit,
+) {
+  val enabled = email.pgpMode == PgpMode.PGP_MODE_OPENKEYCHAIN
+  Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Column(modifier = Modifier.weight(1f)) {
+      Text("Sign and encrypt with OpenKeychain", style = MaterialTheme.typography.bodyLarge)
+      Text(
+          "OpenPGP end-to-end encryption, decrypted and verified by Thunderbird",
+          style = MaterialTheme.typography.bodySmall,
+      )
+    }
+    Switch(
+        checked = enabled,
+        onCheckedChange = { on ->
+          onUpdate(email.id) {
+            it.copy(pgpMode = if (on) PgpMode.PGP_MODE_OPENKEYCHAIN else PgpMode.PGP_MODE_OFF)
+          }
+        },
+    )
+  }
+  if (enabled) OpenKeychainFields(context, email, onUpdate)
+}
+
+private enum class OpenKeychainStep {
+  RECIPIENT,
+  SIGNER,
+  CHECK,
+}
+
+@Composable
+private fun OpenKeychainFields(
+    context: Context,
+    email: EmailPreference,
+    onUpdate: (String, (EmailPreference) -> EmailPreference) -> Unit,
+) {
+  val scope = rememberCoroutineScope()
+  val installed = remember { isOpenKeychainInstalled(context) }
+  val currentEmail by rememberUpdatedState(email)
+  var status by remember { mutableStateOf<String?>(null) }
+  var statusIsError by remember { mutableStateOf(true) }
+  var pendingStep by remember { mutableStateOf<OpenKeychainStep?>(null) }
+  lateinit var launcher: ActivityResultLauncher<IntentSenderRequest>
+
+  fun <T> handle(step: OpenKeychainStep, result: OpenKeychainResult<T>, onDone: (T) -> Unit) {
+    when (result) {
+      is OpenKeychainResult.Done -> onDone(result.value)
+      is OpenKeychainResult.NeedsUser -> {
+        pendingStep = step
+        launcher.launch(IntentSenderRequest.Builder(result.pendingIntent.intentSender).build())
+      }
+    }
+  }
+
+  fun attempt(step: OpenKeychainStep, previous: Intent? = null) {
+    status = null
+    scope.launch {
+      val target = currentEmail
+      runCatching {
+            when (step) {
+              OpenKeychainStep.RECIPIENT ->
+                  handle(step, selectRecipientKeys(context, previous)) { ids ->
+                    onUpdate(target.id) { it.copy(pgpKeyIds = ids) }
+                  }
+              OpenKeychainStep.SIGNER ->
+                  handle(step, selectSigningKey(context, previous)) { id ->
+                    onUpdate(target.id) { it.copy(pgpSignKeyId = id) }
+                  }
+              OpenKeychainStep.CHECK ->
+                  handle(
+                      step,
+                      signAndEncrypt(
+                          context,
+                          secretMimeEntity(
+                              SmsEvent.create("[TEST]", "Encryption check"), target.inputs),
+                          target.pgpKeyIds,
+                          target.pgpSignKeyId,
+                          previous,
+                      ),
+                  ) {
+                    status = "Signing and encryption work."
+                    statusIsError = false
+                  }
+            }
+          }
+          .onFailure {
+            status = it.message
+            statusIsError = true
+          }
+    }
+  }
+
+  launcher =
+      rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+          result ->
+        val step = pendingStep ?: return@rememberLauncherForActivityResult
+        pendingStep = null
+        val data = result.data
+        if (result.resultCode != android.app.Activity.RESULT_OK || data == null) {
+          status = "Cancelled in OpenKeychain."
+          statusIsError = true
+          return@rememberLauncherForActivityResult
+        }
+        attempt(step, data)
+      }
+
+  if (!installed) {
+    Text(
+        text = "OpenKeychain is not installed. Install it from F-Droid, then come back.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+    )
+    Text(
+        text = "Get OpenKeychain",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.primary,
+        textDecoration = TextDecoration.Underline,
+        modifier =
+            Modifier.clickable {
+              context.startActivity(
+                  Intent(
+                      Intent.ACTION_VIEW,
+                      Uri.parse("https://f-droid.org/packages/$OPENKEYCHAIN_PACKAGE/")))
+            },
+    )
+    return
+  }
+
+  KeyLine(
+      label = "Recipient key",
+      value = email.pgpKeyIds.takeIf { it.isNotEmpty() }?.joinToString { formatKeyId(it) },
+  )
+  OutlinedButton(
+      onClick = { attempt(OpenKeychainStep.RECIPIENT) },
+      modifier = Modifier.fillMaxWidth(),
+  ) {
+    Text(if (email.pgpKeyIds.isEmpty()) "Choose recipient key" else "Change recipient key")
+  }
+  KeyLine(
+      label = "Signing key (this phone)",
+      value = email.pgpSignKeyId.takeIf { it != 0L }?.let { formatKeyId(it) },
+  )
+  OutlinedButton(
+      onClick = { attempt(OpenKeychainStep.SIGNER) },
+      modifier = Modifier.fillMaxWidth(),
+  ) {
+    Text(if (email.pgpSignKeyId == 0L) "Choose signing key" else "Change signing key")
+  }
+  Button(
+      onClick = { attempt(OpenKeychainStep.CHECK) },
+      enabled = email.isPgpConfigured(),
+      modifier = Modifier.fillMaxWidth(),
+  ) {
+    Text("Check encryption")
+  }
+  status?.let {
+    Text(
+        text = it,
+        style = MaterialTheme.typography.bodySmall,
+        color =
+            if (statusIsError) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.primary,
+    )
+  }
+  Text(
+      text =
+          "The subject is always \"$ENCRYPTED_SUBJECT\"; the sender, time and text are only in " +
+              "the encrypted part. If OpenKeychain cannot sign and encrypt, nothing is sent. " +
+              "If the signing key has a passphrase, OpenKeychain only remembers it for a while; " +
+              "after that SMS are not sent until you tap \"Check encryption\" again. A key made " +
+              "just for this phone, without a passphrase, avoids this.",
+      style = MaterialTheme.typography.bodySmall,
+  )
+}
+
+@Composable
+private fun KeyLine(label: String, value: String?) {
+  Text(
+      text = "$label: ${value ?: "not chosen"}",
+      style = MaterialTheme.typography.bodySmall,
+      color =
+          if (value == null) MaterialTheme.colorScheme.error
+          else MaterialTheme.colorScheme.onSurface,
   )
 }
 
