@@ -1,6 +1,6 @@
 [versions]
 aboutLibraries = "15.3.0"
-agp = "9.5.2"
+agp = "9.5.3"
 androidMail = "1.6.8"
 matrixAndroidSdk = "1.6.62"
 datastoreProto = "1.2.1"
