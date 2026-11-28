@@ -1,5 +1,6 @@
 package io.github.sms2email.sms2email.preferences
 
+import io.github.sms2email.sms2email.PgpMode
 import io.github.sms2email.sms2email.SmtpEncryptionMode
 
 fun newEmailPreference() = EmailPreference(newId(), true)
@@ -27,6 +28,9 @@ data class EmailPreference(
     val fromEmail: String = "",
     val encryptionMode: SmtpEncryptionMode = SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS,
     val inputs: List<SimInput> = emptyList(),
+    val pgpMode: PgpMode = PgpMode.PGP_MODE_OFF,
+    val pgpKeyIds: List<Long> = emptyList(),
+    val pgpSignKeyId: Long = 0L,
 ) {
   fun isConfigured() =
       smtpHost.isNotBlank() &&
@@ -34,7 +38,14 @@ data class EmailPreference(
           smtpUser.isNotBlank() &&
           smtpPassword.isNotBlank() &&
           fromEmail.isNotBlank() &&
-          emailTo.isNotBlank()
+          emailTo.isNotBlank() &&
+          isPgpConfigured()
+
+  fun isPgpConfigured() =
+      when (pgpMode) {
+        PgpMode.PGP_MODE_OFF -> true
+        else -> pgpKeyIds.isNotEmpty() && pgpSignKeyId != 0L
+      }
 }
 
 data class MatrixRoomOption(

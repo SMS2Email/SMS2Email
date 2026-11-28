@@ -28,7 +28,7 @@ suspend fun sendSms(
               add {
                 runCatching {
                       check(email.isConfigured()) { "Email sender is not configured" }
-                      sendEmail(event, email)
+                      sendEmail(appContext, event, email)
                     }
                     .isSuccess
               }

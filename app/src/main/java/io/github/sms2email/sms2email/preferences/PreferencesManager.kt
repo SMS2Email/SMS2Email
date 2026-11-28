@@ -9,6 +9,7 @@ import com.google.protobuf.InvalidProtocolBufferException
 import io.github.sms2email.sms2email.EmailPreference as EmailProto
 import io.github.sms2email.sms2email.InputPreference as InputProto
 import io.github.sms2email.sms2email.MatrixPreference as MatrixProto
+import io.github.sms2email.sms2email.PgpMode
 import io.github.sms2email.sms2email.Preferences
 import io.github.sms2email.sms2email.SmtpEncryptionMode
 import java.io.InputStream
@@ -202,6 +203,9 @@ private fun EmailProto.toModel() =
         fromEmail = fromEmail,
         encryptionMode = encryptionMode.validEncryption(),
         inputs = inputsList.map { it.toModel() },
+        pgpMode = pgpMode.validPgpMode(),
+        pgpKeyIds = pgpKeyIdsList.toList(),
+        pgpSignKeyId = pgpSignKeyId,
     )
 
 private fun EmailPreference.toProto() =
@@ -216,6 +220,9 @@ private fun EmailPreference.toProto() =
         .setFromEmail(fromEmail)
         .setEncryptionMode(encryptionMode)
         .addAllInputs(inputs.map { it.toProto() })
+        .setPgpMode(pgpMode)
+        .addAllPgpKeyIds(pgpKeyIds)
+        .setPgpSignKeyId(pgpSignKeyId)
         .build()
 
 private fun MatrixProto.toModel() =
@@ -245,3 +252,7 @@ private fun MatrixPreference.toProto() =
 private fun SmtpEncryptionMode.validEncryption() =
     takeUnless { it == SmtpEncryptionMode.UNRECOGNIZED }
         ?: SmtpEncryptionMode.SMTP_ENCRYPTION_MODE_SMTPS
+
+// An unknown mode (written by a newer app version) must not silently turn encryption off.
+private fun PgpMode.validPgpMode() =
+    takeUnless { it == PgpMode.UNRECOGNIZED } ?: PgpMode.PGP_MODE_OPENKEYCHAIN
